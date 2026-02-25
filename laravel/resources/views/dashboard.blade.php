@@ -1,7 +1,8 @@
 @extends('layouts.admin')
 
 @section('title', 'Dashboard')
-@section('page-title', 'Dashboard')
+@section('page-title', request('section') === 'solicitudes' ? 'Solicitudes' : 'Dashboard')
+@section('breadcrumb', request('section') === 'solicitudes' ? 'Inicio / Solicitudes' : 'Inicio / Dashboard')
 
 @php
     $solicitudes = [
@@ -37,7 +38,7 @@
         </div>
     </section>
 
-    <section class="card border-0 shadow-sm">
+    <section id="solicitudes-panel" class="card border-0 shadow-sm">
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0 admin-table">
