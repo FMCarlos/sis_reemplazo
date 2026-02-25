@@ -5,28 +5,15 @@
 @section('breadcrumb', request('section') === 'solicitudes' ? 'Inicio / Solicitudes' : 'Inicio / Dashboard')
 
 @php
-    $solicitudes = [
-        [
-            'id' => 101,
-            'estado' => 'En revisión',
-            'badge' => 'warning',
-            'servicio' => 'Cirugía',
-            'creada' => '2026-02-13 09:30',
-        ],
-        [
-            'id' => 102,
-            'estado' => 'Observada',
-            'badge' => 'secondary',
-            'servicio' => 'Urgencias',
-            'creada' => '2026-02-13 11:10',
-        ],
-        [
-            'id' => 103,
-            'estado' => 'Aprobada',
-            'badge' => 'success',
-            'servicio' => 'Cardiología',
-            'creada' => '2026-02-14 08:15',
-        ],
+    $statusStyles = [
+        'BORRADOR' => 'secondary',
+        'OBSERVADA' => 'warning',
+        'ENVIADA' => 'primary',
+        'EN_GESTION_PERSONAS' => 'info',
+        'EN_RRHH' => 'info',
+        'RECHAZADA' => 'danger',
+        'EN_TRAMITACION_CONTRATO' => 'dark',
+        'FINALIZADA' => 'success',
     ];
 @endphp
 
@@ -34,7 +21,7 @@
     <section class="card border-0 shadow-sm mb-4">
         <div class="card-body">
             <h1 class="h4 mb-2">Solicitudes de Reemplazo</h1>
-            <p class="text-muted mb-0">Vista inicial de tabla administrativa. Las acciones se muestran como ejemplo UI (sin persistencia).</p>
+            <p class="text-muted mb-0">Listado de solicitudes propias y envío de borradores por AJAX con auditoría.</p>
         </div>
     </section>
 
@@ -52,29 +39,32 @@
                     </tr>
                     </thead>
                     <tbody>
-                    @forelse ($solicitudes as $solicitud)
-                        <tr>
-                            <td class="fw-semibold">#{{ $solicitud['id'] }}</td>
-                            <td><span class="badge text-bg-{{ $solicitud['badge'] }}">{{ $solicitud['estado'] }}</span></td>
-                            <td>{{ $solicitud['servicio'] }}</td>
-                            <td>{{ $solicitud['creada'] }}</td>
+                    @forelse ($requests as $request)
+                        @php
+                            $status = $request->status->value;
+                            $canSend = in_array($request->status, [\App\Enums\RequestStatus::BORRADOR, \App\Enums\RequestStatus::OBSERVADA], true);
+                        @endphp
+                        <tr id="request-row-{{ $request->id }}">
+                            <td class="fw-semibold">#{{ $request->id }}</td>
+                            <td>
+                                <span id="status-badge-{{ $request->id }}" class="badge text-bg-{{ $statusStyles[$status] ?? 'secondary' }}">
+                                    {{ $status }}
+                                </span>
+                            </td>
+                            <td>{{ $request->service?->name ?? 'Sin servicio' }}</td>
+                            <td>{{ $request->created_at?->format('Y-m-d H:i') }}</td>
                             <td class="text-end">
-                                <div class="btn-group" role="group" aria-label="Acciones de solicitud">
+                                @if($canSend)
                                     <button
                                         type="button"
-                                        class="btn btn-sm btn-outline-secondary"
-                                        @click="openObservationModal({ id: {{ $solicitud['id'] }}, servicio: '{{ $solicitud['servicio'] }}' })"
+                                        class="btn btn-sm btn-primary btn-send"
+                                        data-request-id="{{ $request->id }}"
                                     >
-                                        Observar
+                                        Enviar
                                     </button>
-                                    <button
-                                        type="button"
-                                        class="btn btn-sm btn-primary"
-                                        @click="showToast('Acción realizada para solicitud #{{ $solicitud['id'] }}')"
-                                    >
-                                        Simular acción
-                                    </button>
-                                </div>
+                                @else
+                                    <span class="text-muted small">Sin acciones disponibles</span>
+                                @endif
                             </td>
                         </tr>
                     @empty
@@ -88,3 +78,67 @@
         </div>
     </section>
 @endsection
+
+@push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+            const statusClassMap = {
+                BORRADOR: 'text-bg-secondary',
+                OBSERVADA: 'text-bg-warning',
+                ENVIADA: 'text-bg-primary',
+                EN_GESTION_PERSONAS: 'text-bg-info',
+                EN_RRHH: 'text-bg-info',
+                RECHAZADA: 'text-bg-danger',
+                EN_TRAMITACION_CONTRATO: 'text-bg-dark',
+                FINALIZADA: 'text-bg-success',
+            };
+
+            const showToast = (message, type = 'success') => {
+                window.dispatchEvent(new CustomEvent('admin-toast', {
+                    detail: { message, type },
+                }));
+            };
+
+            document.querySelectorAll('.btn-send').forEach((button) => {
+                button.addEventListener('click', async () => {
+                    const requestId = button.dataset.requestId;
+                    button.disabled = true;
+
+                    try {
+                        const response = await fetch(`/requests/${requestId}/actions/send`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken,
+                            },
+                            body: JSON.stringify({}),
+                        });
+
+                        const result = await response.json();
+
+                        if (!response.ok || !result.ok) {
+                            throw new Error(result.message || 'No fue posible enviar la solicitud.');
+                        }
+
+                        const badge = document.getElementById(`status-badge-${requestId}`);
+                        if (badge) {
+                            const classes = Object.values(statusClassMap);
+                            badge.classList.remove(...classes);
+                            badge.classList.add(statusClassMap[result.data.status] ?? 'text-bg-secondary');
+                            badge.textContent = result.data.status;
+                        }
+
+                        button.remove();
+                        showToast(result.message);
+                    } catch (error) {
+                        button.disabled = false;
+                        showToast(error.message || 'Error inesperado al enviar.', 'error');
+                    }
+                });
+            });
+        });
+    </script>
+@endpush

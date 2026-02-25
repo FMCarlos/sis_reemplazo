@@ -1,0 +1,43 @@
+<?php
+
+namespace Database\Seeders;
+
+use App\Enums\RequestStatus;
+use App\Models\Request;
+use App\Models\Service;
+use App\Models\User;
+use Illuminate\Database\Seeder;
+
+class RequestSeeder extends Seeder
+{
+    public function run(): void
+    {
+        $user = User::query()->first();
+
+        if (! $user) {
+            return;
+        }
+
+        $services = Service::query()->limit(3)->get();
+
+        if ($services->isEmpty()) {
+            return;
+        }
+
+        $statuses = [
+            RequestStatus::BORRADOR,
+            RequestStatus::BORRADOR,
+            RequestStatus::OBSERVADA,
+        ];
+
+        foreach ($statuses as $index => $status) {
+            $service = $services[$index % $services->count()];
+
+            Request::query()->create([
+                'service_id' => $service->id,
+                'created_by' => $user->id,
+                'status' => $status,
+            ]);
+        }
+    }
+}

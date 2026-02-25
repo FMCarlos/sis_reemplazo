@@ -12,6 +12,13 @@ Alpine.data('adminUi', () => ({
     toastMessage: 'Acción realizada',
     selectedRequest: null,
 
+    init() {
+        window.addEventListener('admin-toast', (event) => {
+            const { message, type } = event.detail ?? {};
+            this.showToast(message ?? 'Acción realizada', type ?? 'success');
+        });
+    },
+
     openObservationModal(request) {
         this.selectedRequest = request;
         this.modalTitle = `Observar solicitud #${request.id}`;
@@ -37,13 +44,17 @@ Alpine.data('adminUi', () => ({
         this.showToast(`Acción realizada en solicitud #${requestId}`);
     },
 
-    showToast(message) {
+    showToast(message, type = 'success') {
         this.toastMessage = message;
 
         const toastElement = document.getElementById('feedbackToast');
-        if (!toastElement) {
+        const toastHeader = document.querySelector('#feedbackToast .toast-header');
+        if (!toastElement || !toastHeader) {
             return;
         }
+
+        toastHeader.classList.remove('bg-success', 'bg-danger');
+        toastHeader.classList.add(type === 'error' ? 'bg-danger' : 'bg-success');
 
         const toast = bootstrap.Toast.getOrCreateInstance(toastElement);
         toast.show();
