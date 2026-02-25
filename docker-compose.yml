@@ -1,0 +1,44 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: solicitudes_app
+    volumes:
+      - ./laravel:/var/www
+    networks:
+      - solicitudes_net
+
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: solicitudes_nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./laravel:/var/www
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+    networks:
+      - solicitudes_net
+
+  mysql:
+    image: mysql:8.0
+    container_name: solicitudes_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: solicitudes
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - solicitudes_net
+
+networks:
+  solicitudes_net:
+
+volumes:
+  mysql_data:
