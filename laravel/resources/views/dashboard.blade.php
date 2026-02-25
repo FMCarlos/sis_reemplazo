@@ -42,7 +42,7 @@
                     @forelse ($requests as $request)
                         @php
                             $status = $request->status->value;
-                            $canSend = in_array($request->status, [\App\Enums\RequestStatus::BORRADOR, \App\Enums\RequestStatus::OBSERVADA], true);
+                            $canSend = auth()->user()->can('send', $request);
                         @endphp
                         <tr id="request-row-{{ $request->id }}">
                             <td class="fw-semibold">#{{ $request->id }}</td>

@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Enums\RequestStatus;
+use App\Enums\UserRole;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -23,6 +25,17 @@ class Request extends Model
         return [
             'status' => RequestStatus::class,
         ];
+    }
+
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if (in_array($user->role, [UserRole::GESTION_PERSONAS, UserRole::RRHH], true)) {
+            return $query;
+        }
+
+        return $query
+            ->where('service_id', $user->service_id)
+            ->where('created_by', $user->id);
     }
 
     public function service(): BelongsTo

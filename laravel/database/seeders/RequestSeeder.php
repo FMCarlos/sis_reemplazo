@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Enums\RequestStatus;
+use App\Enums\UserRole;
 use App\Models\Request;
 use App\Models\Service;
 use App\Models\User;
@@ -12,9 +13,11 @@ class RequestSeeder extends Seeder
 {
     public function run(): void
     {
-        $user = User::query()->first();
+        $jefeServicio = User::query()
+            ->where('role', UserRole::JEFE_SERVICIO)
+            ->first();
 
-        if (! $user) {
+        if (! $jefeServicio) {
             return;
         }
 
@@ -35,7 +38,7 @@ class RequestSeeder extends Seeder
 
             Request::query()->create([
                 'service_id' => $service->id,
-                'created_by' => $user->id,
+                'created_by' => $jefeServicio->id,
                 'status' => $status,
             ]);
         }
