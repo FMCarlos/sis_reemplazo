@@ -8,29 +8,62 @@
     <title>{{ config('app.name', 'Laravel') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="bg-light min-vh-100">
-<nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
-    <div class="container">
-        <a class="navbar-brand" href="{{ route('dashboard') }}">{{ config('app.name', 'Laravel') }}</a>
-        <div class="ms-auto">
-            @auth
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button type="submit" class="btn btn-outline-secondary btn-sm">Cerrar sesión</button>
-                </form>
-            @endauth
+<body>
+<div class="app-shell d-lg-flex">
+    <aside class="app-sidebar bg-dark text-white p-3 p-lg-4">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <h1 class="h5 mb-0">{{ config('app.name', 'Hospital SIS') }}</h1>
+            <button
+                class="btn btn-outline-light btn-sm d-lg-none"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#sidebarMenu"
+                aria-expanded="false"
+                aria-controls="sidebarMenu"
+            >
+                Menú
+            </button>
         </div>
+
+        <div class="collapse d-lg-block" id="sidebarMenu">
+            <p class="text-white-50 small text-uppercase mb-2">Navegación</p>
+            <nav class="nav nav-pills flex-column gap-2">
+                <a class="nav-link active" href="{{ route('dashboard') }}">Dashboard</a>
+                <span class="nav-link text-white-50 disabled">Solicitudes</span>
+                <span class="nav-link text-white-50 disabled">Aprobaciones</span>
+                <span class="nav-link text-white-50 disabled">Reportes</span>
+            </nav>
+        </div>
+    </aside>
+
+    <div class="main-wrapper flex-grow-1 d-flex flex-column">
+        <header class="bg-white border-bottom px-3 px-lg-4 py-3">
+            <div class="content-container mx-auto d-flex align-items-center justify-content-between">
+                <div>
+                    <h2 class="h5 mb-0">Panel de administración</h2>
+                    <small class="text-muted">Gestión de solicitudes hospitalarias</small>
+                </div>
+                @auth
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button type="submit" class="btn btn-outline-secondary btn-sm">Cerrar sesión</button>
+                    </form>
+                @endauth
+            </div>
+        </header>
+
+        <main class="flex-grow-1 px-3 px-lg-4 py-4">
+            <div class="content-container mx-auto">
+                @if (session('status'))
+                    <div class="alert alert-success" role="alert">
+                        {{ session('status') }}
+                    </div>
+                @endif
+
+                {{ $slot }}
+            </div>
+        </main>
     </div>
-</nav>
-
-<main class="container py-4">
-    @if (session('status'))
-        <div class="alert alert-success" role="alert">
-            {{ session('status') }}
-        </div>
-    @endif
-
-    {{ $slot }}
-</main>
+</div>
 </body>
 </html>
