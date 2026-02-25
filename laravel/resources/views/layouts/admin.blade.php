@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'SIS Reemplazos') }}</title>
+    <title>{{ trim($__env->yieldContent('title', 'Dashboard')) }} | {{ config('app.name', 'SIS Reemplazos') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body>
@@ -13,7 +13,16 @@
     <aside class="admin-sidebar bg-primary text-white p-3 p-lg-4">
         <div class="d-flex align-items-center justify-content-between mb-4">
             <h1 class="h5 mb-0">SIS Reemplazos</h1>
-            <button class="btn btn-outline-light btn-sm d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-expanded="false" aria-controls="sidebarMenu">Menú</button>
+            <button
+                class="btn btn-outline-light btn-sm d-lg-none"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#sidebarMenu"
+                aria-expanded="false"
+                aria-controls="sidebarMenu"
+            >
+                Menú
+            </button>
         </div>
 
         <div class="collapse d-lg-block" id="sidebarMenu">
@@ -31,7 +40,7 @@
         <header class="admin-topbar border-bottom px-3 px-lg-4 py-3">
             <div class="container-fluid px-0 d-flex align-items-center justify-content-between">
                 <div>
-                    <h2 class="h5 mb-0">Panel Administrativo</h2>
+                    <h2 class="h5 mb-0">@yield('page-title', 'Panel Administrativo')</h2>
                     <small class="text-muted">Hospital Dr. Humberto Elorza Cortés</small>
                 </div>
                 @auth
@@ -45,7 +54,7 @@
 
         <main class="px-3 px-lg-4 py-4">
             <div class="container-fluid px-0 content-container">
-                {{ $slot }}
+                @yield('content')
             </div>
         </main>
     </div>
@@ -79,5 +88,7 @@
         </div>
     </div>
 </div>
+
+@stack('scripts')
 </body>
 </html>
