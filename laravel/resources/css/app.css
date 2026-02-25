@@ -2,11 +2,11 @@
 
 :root {
     --sidebar-width: 260px;
-    --sidebar-bg: #1f4d73;
-    --body-bg: #edf1f5;
+    --sidebar-bg: #ffffff;
+    --body-bg: #f5f6f8;
 }
 
-body {
+.admin-body {
     margin: 0;
     font-family: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     background-color: var(--body-bg);
@@ -19,12 +19,28 @@ body {
 
 .admin-sidebar {
     width: var(--sidebar-width);
-    min-height: 100vh;
+    min-height: 100dvh;
     background-color: var(--sidebar-bg) !important;
+    border-right: 1px solid #e5e7eb;
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
 }
 
 .admin-topbar {
     background-color: #fff;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+}
+
+.admin-sidebar .nav-link {
+    color: #495057;
+}
+
+.admin-sidebar .nav-link.active {
+    background-color: #0d6efd;
+    color: #fff;
 }
 
 .content-container {
@@ -49,5 +65,6 @@ body {
     .admin-sidebar {
         width: 100%;
         min-height: auto;
+        position: static;
     }
 }

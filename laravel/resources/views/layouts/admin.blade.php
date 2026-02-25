@@ -8,13 +8,13 @@
     <title>{{ trim($__env->yieldContent('title', 'Dashboard')) }} | {{ config('app.name', 'SIS Reemplazos') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body>
+<body class="admin-body">
 <div class="admin-shell" x-data="adminUi()">
-    <aside class="admin-sidebar bg-primary text-white p-3 p-lg-4">
-        <div class="d-flex align-items-center justify-content-between mb-4">
-            <h1 class="h5 mb-0">SIS Reemplazos</h1>
+    <aside class="admin-sidebar p-3 p-lg-4">
+        <div class="d-flex align-items-center justify-content-between mb-4 pb-3 border-bottom">
+            <h1 class="h5 mb-0 fw-semibold">SIS Reemplazos</h1>
             <button
-                class="btn btn-outline-light btn-sm d-lg-none"
+                class="btn btn-outline-secondary btn-sm d-lg-none"
                 type="button"
                 data-bs-toggle="collapse"
                 data-bs-target="#sidebarMenu"
@@ -26,28 +26,29 @@
         </div>
 
         <div class="collapse d-lg-block" id="sidebarMenu">
-            <p class="text-white-50 small text-uppercase mb-2">Navegación</p>
+            <p class="text-muted small text-uppercase mb-2">Navegación</p>
             <nav class="nav nav-pills flex-column gap-2">
-                <a class="nav-link active" href="{{ route('dashboard') }}">Dashboard</a>
-                <span class="nav-link text-white-50 disabled">Solicitudes</span>
-                <span class="nav-link text-white-50 disabled">Gestión Personas</span>
-                <span class="nav-link text-white-50 disabled">RRHH</span>
+                <a class="nav-link {{ request()->routeIs('dashboard') && request('section') !== 'solicitudes' ? 'active' : '' }}" href="{{ route('dashboard') }}">Dashboard</a>
+                <a class="nav-link {{ request()->routeIs('dashboard') && request('section') === 'solicitudes' ? 'active' : '' }}" href="{{ route('dashboard', ['section' => 'solicitudes']) }}#solicitudes-panel">Solicitudes</a>
             </nav>
         </div>
     </aside>
 
     <div class="admin-main d-flex flex-column flex-grow-1">
-        <header class="admin-topbar border-bottom px-3 px-lg-4 py-3">
+        <header class="admin-topbar border-bottom px-3 px-lg-4">
             <div class="container-fluid px-0 d-flex align-items-center justify-content-between">
                 <div>
+                    <p class="small text-muted mb-1">@yield('breadcrumb', 'Inicio / Dashboard')</p>
                     <h2 class="h5 mb-0">@yield('page-title', 'Panel Administrativo')</h2>
-                    <small class="text-muted">Hospital Dr. Humberto Elorza Cortés</small>
                 </div>
                 @auth
-                    <form method="POST" action="{{ route('logout') }}">
-                        @csrf
-                        <button type="submit" class="btn btn-outline-secondary btn-sm">Cerrar sesión</button>
-                    </form>
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="text-muted small mb-0">{{ auth()->user()->name }}</span>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="btn btn-outline-secondary btn-sm">Cerrar sesión</button>
+                        </form>
+                    </div>
                 @endauth
             </div>
         </header>
