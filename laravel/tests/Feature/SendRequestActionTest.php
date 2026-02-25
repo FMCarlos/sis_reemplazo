@@ -16,8 +16,11 @@ class SendRequestActionTest extends TestCase
 
     public function test_creator_can_send_draft_request_and_audit_log_is_created(): void
     {
-        $user = User::factory()->create();
         $service = Service::query()->create(['name' => 'Servicio Test']);
+
+        $user = User::factory()->create([
+            'service_id' => $service->id,
+        ]);
 
         $request = Request::query()->create([
             'service_id' => $service->id,

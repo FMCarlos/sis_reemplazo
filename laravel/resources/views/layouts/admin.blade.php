@@ -43,6 +43,7 @@
                 </div>
                 @auth
                     <div class="d-flex align-items-center gap-3">
+                        <span class="text-muted small mb-0">Rol: {{ auth()->user()->role?->label() ?? '-' }}</span>
                         <span class="text-muted small mb-0">{{ auth()->user()->name }}</span>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf

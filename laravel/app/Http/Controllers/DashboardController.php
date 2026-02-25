@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Request as WorkflowRequest;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 
@@ -9,9 +10,11 @@ class DashboardController extends Controller
 {
     public function __invoke(Request $request): View
     {
-        $requests = $request->user()
-            ->requestsCreated()
+        $this->authorize('viewAny', WorkflowRequest::class);
+
+        $requests = WorkflowRequest::query()
             ->with('service')
+            ->visibleTo($request->user())
             ->latest()
             ->get();
 
