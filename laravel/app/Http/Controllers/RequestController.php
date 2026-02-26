@@ -33,6 +33,22 @@ class RequestController extends Controller
         return view('requests.create');
     }
 
+    public function show(WorkflowRequest $request): View
+    {
+        $this->authorize('view', $request);
+
+        $request->load([
+            'service',
+            'creator',
+            'actions' => fn ($query) => $query->with('user')->latest(),
+            'attachments',
+        ]);
+
+        return view('requests.show', [
+            'requestModel' => $request,
+        ]);
+    }
+
     public function store(StoreRequestRequest $request): JsonResponse
     {
         $this->authorize('create', WorkflowRequest::class);

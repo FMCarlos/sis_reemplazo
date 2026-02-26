@@ -65,6 +65,7 @@
                             <td>{{ $request->service?->name ?? 'Sin servicio' }}</td>
                             <td>{{ $request->created_at?->format('Y-m-d H:i') }}</td>
                             <td class="text-end">
+                                <a href="{{ route('requests.show', $request) }}" class="btn btn-sm btn-outline-secondary">Ver</a>
                                 @if($canSend)
                                     <button
                                         type="button"
@@ -73,8 +74,6 @@
                                     >
                                         Enviar
                                     </button>
-                                @else
-                                    <span class="text-muted small">Sin acciones disponibles</span>
                                 @endif
                             </td>
                         </tr>
