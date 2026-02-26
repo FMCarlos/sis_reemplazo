@@ -28,8 +28,8 @@
         <div class="collapse d-lg-block" id="sidebarMenu">
             <p class="text-muted small text-uppercase mb-2">Navegación</p>
             <nav class="nav nav-pills flex-column gap-2">
-                <a class="nav-link {{ request()->routeIs('dashboard') && request('section') !== 'solicitudes' ? 'active' : '' }}" href="{{ route('dashboard') }}">Dashboard</a>
-                <a class="nav-link {{ request()->routeIs('dashboard') && request('section') === 'solicitudes' ? 'active' : '' }}" href="{{ route('dashboard', ['section' => 'solicitudes']) }}#solicitudes-panel">Solicitudes</a>
+                <a class="nav-link {{ request()->routeIs('dashboard') || request()->routeIs('requests.index') ? 'active' : '' }}" href="{{ route('requests.index') }}">Dashboard</a>
+                <a class="nav-link {{ request()->routeIs('requests.*') ? 'active' : '' }}" href="{{ route('requests.index') }}#solicitudes-panel">Solicitudes</a>
             </nav>
         </div>
     </aside>
