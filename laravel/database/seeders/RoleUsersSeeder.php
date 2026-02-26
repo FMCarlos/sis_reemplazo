@@ -12,7 +12,7 @@ class RoleUsersSeeder extends Seeder
 {
     public function run(): void
     {
-        $service = Service::query()->first() ?? Service::query()->create(['name' => 'Servicio General']);
+        $service = Service::query()->firstOrCreate(['name' => 'Servicio General']);
 
         User::query()->updateOrCreate(
             ['email' => 'jefe.servicio@example.com'],
@@ -20,7 +20,7 @@ class RoleUsersSeeder extends Seeder
                 'name' => 'Jefe Servicio Demo',
                 'password' => Hash::make('Password123!'),
                 'role' => UserRole::JEFE_SERVICIO,
-                'service_id' => $service?->id,
+                'service_id' => $service->id,
                 'email_verified_at' => now(),
             ]
         );
