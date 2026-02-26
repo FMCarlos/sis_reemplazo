@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\RequestStatus;
 use App\Enums\UserRole;
+use App\Models\Request as WorkflowRequest;
 use App\Models\Service;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -39,6 +40,17 @@ class CreateRequestTest extends TestCase
             'fecha_inicio' => '2026-03-01',
             'fecha_fin' => '2026-03-15',
             'nombre_reemplazo' => 'Candidato Demo',
+        ]);
+
+        $createdRequest = WorkflowRequest::query()->where('created_by', $jefe->id)->firstOrFail();
+
+        $this->assertDatabaseHas('request_actions', [
+            'request_id' => $createdRequest->id,
+            'user_id' => $jefe->id,
+            'action' => 'create',
+            'from_status' => RequestStatus::BORRADOR->value,
+            'to_status' => RequestStatus::BORRADOR->value,
+            'comment' => null,
         ]);
     }
 

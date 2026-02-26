@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\RequestStatus;
 use App\Http\Requests\StoreRequestRequest;
+use App\Services\RequestWorkflowService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,22 +32,14 @@ class RequestController extends Controller
         return view('requests.create');
     }
 
-    public function store(StoreRequestRequest $request): RedirectResponse
+    public function store(StoreRequestRequest $request, RequestWorkflowService $workflowService): RedirectResponse
     {
         $this->authorize('create', \App\Models\Request::class);
 
-        $user = $request->user();
-        $validated = $request->validated();
-
-        \App\Models\Request::query()->create([
-            'service_id' => $user->service_id,
-            'created_by' => $user->id,
-            'status' => RequestStatus::BORRADOR,
-            'motivo' => $validated['motivo'],
-            'fecha_inicio' => $validated['fecha_inicio'],
-            'fecha_fin' => $validated['fecha_fin'],
-            'nombre_reemplazo' => $validated['nombre_reemplazo'],
-        ]);
+        $workflowService->createDraft(
+            $request->user(),
+            $request->validated()
+        );
 
         return redirect()
             ->route('requests.index')
