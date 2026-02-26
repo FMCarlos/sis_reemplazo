@@ -9,7 +9,9 @@
         <div class="card-body">
             <h1 class="h4 mb-4">Crear solicitud de reemplazo</h1>
 
-            <form method="POST" action="{{ route('requests.store') }}" class="row g-3">
+            <div id="request-form-feedback" class="alert d-none" role="alert"></div>
+
+            <form method="POST" action="{{ route('requests.store') }}" class="row g-3" id="request-create-form" novalidate>
                 @csrf
 
                 <div class="col-12">
@@ -23,9 +25,9 @@
                         placeholder="Ej: Licencia médica"
                         required
                     >
-                    @error('motivo')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
+                    <div class="invalid-feedback" data-error-for="motivo">
+                        @error('motivo'){{ $message }}@enderror
+                    </div>
                 </div>
 
                 <div class="col-md-6">
@@ -38,9 +40,9 @@
                         class="form-control @error('fecha_inicio') is-invalid @enderror"
                         required
                     >
-                    @error('fecha_inicio')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
+                    <div class="invalid-feedback" data-error-for="fecha_inicio">
+                        @error('fecha_inicio'){{ $message }}@enderror
+                    </div>
                 </div>
 
                 <div class="col-md-6">
@@ -53,9 +55,9 @@
                         class="form-control @error('fecha_fin') is-invalid @enderror"
                         required
                     >
-                    @error('fecha_fin')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
+                    <div class="invalid-feedback" data-error-for="fecha_fin">
+                        @error('fecha_fin'){{ $message }}@enderror
+                    </div>
                 </div>
 
                 <div class="col-12">
@@ -69,16 +71,115 @@
                         placeholder="Ej: Pendiente de definir"
                         required
                     >
-                    @error('nombre_reemplazo')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
+                    <div class="invalid-feedback" data-error-for="nombre_reemplazo">
+                        @error('nombre_reemplazo'){{ $message }}@enderror
+                    </div>
                 </div>
 
                 <div class="col-12 d-flex gap-2 justify-content-end mt-3">
                     <a href="{{ route('requests.index') }}" class="btn btn-outline-secondary">Cancelar</a>
-                    <button type="submit" class="btn btn-primary">Guardar borrador</button>
+                    <button type="submit" class="btn btn-primary" id="request-create-submit">Guardar borrador</button>
                 </div>
             </form>
         </div>
     </section>
 @endsection
+
+@push('scripts')
+    <script>
+        (() => {
+            const form = document.getElementById('request-create-form');
+            if (!form) {
+                return;
+            }
+
+            const submitButton = document.getElementById('request-create-submit');
+            const feedback = document.getElementById('request-form-feedback');
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
+
+            const clearValidationErrors = () => {
+                form.querySelectorAll('input').forEach((input) => {
+                    input.classList.remove('is-invalid');
+                });
+
+                form.querySelectorAll('[data-error-for]').forEach((errorContainer) => {
+                    errorContainer.textContent = '';
+                });
+            };
+
+            const showFeedback = (message, type = 'danger') => {
+                if (!feedback) {
+                    return;
+                }
+
+                if (!message) {
+                    feedback.className = 'alert d-none';
+                    feedback.textContent = '';
+                    return;
+                }
+
+                feedback.className = `alert alert-${type}`;
+                feedback.textContent = message;
+            };
+
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                clearValidationErrors();
+                showFeedback('');
+
+                if (submitButton) {
+                    submitButton.disabled = true;
+                }
+
+                const formData = new FormData(form);
+                const payload = Object.fromEntries(formData.entries());
+
+                try {
+                    const response = await fetch(form.action, {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                        },
+                        body: JSON.stringify(payload),
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok && result.ok) {
+                        showFeedback(result.message ?? 'Solicitud creada en borrador.', 'success');
+                        form.reset();
+                        return;
+                    }
+
+                    if (response.status === 422 && result.errors) {
+                        Object.entries(result.errors).forEach(([field, messages]) => {
+                            const input = form.querySelector(`[name="${field}"]`);
+                            const errorContainer = form.querySelector(`[data-error-for="${field}"]`);
+
+                            if (input) {
+                                input.classList.add('is-invalid');
+                            }
+
+                            if (errorContainer) {
+                                errorContainer.textContent = Array.isArray(messages) ? messages[0] : String(messages);
+                            }
+                        });
+
+                        showFeedback(result.message ?? 'Revisa los campos del formulario.', 'danger');
+                        return;
+                    }
+
+                    showFeedback(result.message ?? 'No fue posible crear la solicitud.', 'danger');
+                } catch (error) {
+                    showFeedback('Ocurrió un error de red al guardar la solicitud.', 'danger');
+                } finally {
+                    if (submitButton) {
+                        submitButton.disabled = false;
+                    }
+                }
+            });
+        })();
+    </script>
+@endpush

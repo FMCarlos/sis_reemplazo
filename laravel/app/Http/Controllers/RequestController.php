@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreRequestRequest;
 use App\Services\RequestWorkflowService;
 use Illuminate\Contracts\View\View;
-use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class RequestController extends Controller
@@ -32,17 +32,30 @@ class RequestController extends Controller
         return view('requests.create');
     }
 
-    public function store(StoreRequestRequest $request, RequestWorkflowService $workflowService): RedirectResponse
+    public function store(StoreRequestRequest $request): JsonResponse
     {
         $this->authorize('create', \App\Models\Request::class);
 
-        $workflowService->createDraft(
-            $request->user(),
-            $request->validated()
-        );
+        $user = $request->user();
+        $validated = $request->validated();
 
-        return redirect()
-            ->route('requests.index')
-            ->with('status', 'Solicitud creada en borrador.');
+        $createdRequest = \App\Models\Request::query()->create([
+            'service_id' => $user->service_id,
+            'created_by' => $user->id,
+            'status' => RequestStatus::BORRADOR,
+            'motivo' => $validated['motivo'],
+            'fecha_inicio' => $validated['fecha_inicio'],
+            'fecha_fin' => $validated['fecha_fin'],
+            'nombre_reemplazo' => $validated['nombre_reemplazo'],
+        ]);
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Solicitud creada en borrador.',
+            'data' => [
+                'id' => $createdRequest->id,
+                'status' => $createdRequest->status->value,
+            ],
+        ], 201);
     }
 }
