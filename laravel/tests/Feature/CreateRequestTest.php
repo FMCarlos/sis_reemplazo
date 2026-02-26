@@ -61,4 +61,25 @@ class CreateRequestTest extends TestCase
             ])
             ->assertForbidden();
     }
+
+    public function test_jefe_servicio_without_service_cannot_access_create_form_or_store(): void
+    {
+        $jefe = User::factory()->create([
+            'role' => UserRole::JEFE_SERVICIO,
+            'service_id' => null,
+        ]);
+
+        $this->actingAs($jefe)
+            ->get(route('requests.create'))
+            ->assertForbidden();
+
+        $this->actingAs($jefe)
+            ->post(route('requests.store'), [
+                'motivo' => 'X',
+                'fecha_inicio' => '2026-03-01',
+                'fecha_fin' => '2026-03-02',
+                'nombre_reemplazo' => 'Y',
+            ])
+            ->assertForbidden();
+    }
 }

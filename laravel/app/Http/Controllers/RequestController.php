@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Enums\RequestStatus;
 use App\Http\Requests\StoreRequestRequest;
-use App\Models\Request as WorkflowRequest;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,9 +12,9 @@ class RequestController extends Controller
 {
     public function index(Request $request): View
     {
-        $this->authorize('viewAny', WorkflowRequest::class);
+        $this->authorize('viewAny', \App\Models\Request::class);
 
-        $requests = WorkflowRequest::query()
+        $requests = \App\Models\Request::query()
             ->with('service')
             ->visibleTo($request->user())
             ->latest()
@@ -28,19 +27,19 @@ class RequestController extends Controller
 
     public function create(Request $request): View
     {
-        $this->authorize('create', WorkflowRequest::class);
+        $this->authorize('create', \App\Models\Request::class);
 
         return view('requests.create');
     }
 
     public function store(StoreRequestRequest $request): RedirectResponse
     {
-        $this->authorize('create', WorkflowRequest::class);
+        $this->authorize('create', \App\Models\Request::class);
 
         $user = $request->user();
         $validated = $request->validated();
 
-        WorkflowRequest::query()->create([
+        \App\Models\Request::query()->create([
             'service_id' => $user->service_id,
             'created_by' => $user->id,
             'status' => RequestStatus::BORRADOR,
