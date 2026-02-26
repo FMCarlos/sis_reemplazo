@@ -16,6 +16,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/requests/{request}', [RequestController::class, 'show'])->name('requests.show');
     Route::post('/requests', [RequestController::class, 'store'])->name('requests.store');
 
+    Route::post('/requests/{request}/actions/{action}', [RequestWorkflowController::class, 'perform'])
+        ->name('requests.actions.perform');
+
     Route::post('/requests/{request}/actions/send', [RequestWorkflowController::class, 'send'])
         ->name('requests.actions.send');
 });

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\RequestStatus;
+use App\Enums\UserRole;
 use App\Models\Request as WorkflowRequest;
 use App\Models\RequestAction;
 use App\Models\User;
@@ -39,31 +40,100 @@ class RequestWorkflowService
 
     public function apply(WorkflowRequest $request, User $user, string $action, ?string $comment = null): WorkflowRequest
     {
-        if ($action !== 'send') {
+        $normalizedAction = str_replace('-', '_', $action);
+
+        $transitions = $this->transitions();
+
+        if (! array_key_exists($normalizedAction, $transitions)) {
             throw new InvalidArgumentException('Acción no soportada.');
         }
 
         $fromStatus = $request->status;
+        $transition = collect($transitions[$normalizedAction])
+            ->first(fn (array $rule) => $user->role === $rule['role'] && in_array($fromStatus, $rule['from'], true));
 
-        if (! in_array($fromStatus, [RequestStatus::BORRADOR, RequestStatus::OBSERVADA], true)) {
-            throw new RuntimeException('La solicitud no puede ser enviada desde su estado actual.');
+        if ($transition === null) {
+            throw new RuntimeException('No tienes permisos o la solicitud no está en un estado válido para esta acción.');
         }
 
-        return DB::transaction(function () use ($request, $user, $comment, $fromStatus) {
-            $request->status = RequestStatus::ENVIADA;
+        if (($transition['owner_only'] ?? false) && $request->created_by !== $user->id) {
+            throw new RuntimeException('Solo la jefatura creadora puede ejecutar esta acción.');
+        }
+
+        if (($transition['comment_required'] ?? false) && blank($comment)) {
+            throw new RuntimeException('Debe ingresar un comentario para esta acción.');
+        }
+
+        return DB::transaction(function () use ($request, $user, $comment, $fromStatus, $transition, $normalizedAction) {
+            $request->status = $transition['to'];
             $request->save();
 
             $this->logAction(
                 $request,
                 $user,
-                'send',
+                $normalizedAction,
                 $fromStatus,
-                RequestStatus::ENVIADA,
+                $transition['to'],
                 $comment
             );
 
             return $request->refresh();
         });
+    }
+
+    /**
+     * @return array<string, array<int, array{role: UserRole, from: array<int, RequestStatus>, to: RequestStatus, owner_only?: bool, comment_required?: bool}>>
+     */
+    public function transitions(): array
+    {
+        return [
+            'send' => [[
+                'role' => UserRole::JEFE_SERVICIO,
+                'from' => [RequestStatus::BORRADOR, RequestStatus::OBSERVADA],
+                'to' => RequestStatus::ENVIADA,
+                'owner_only' => true,
+            ]],
+            'take' => [[
+                'role' => UserRole::GESTION_PERSONAS,
+                'from' => [RequestStatus::ENVIADA],
+                'to' => RequestStatus::EN_GESTION_PERSONAS,
+            ]],
+            'send_to_rrhh' => [[
+                'role' => UserRole::GESTION_PERSONAS,
+                'from' => [RequestStatus::EN_GESTION_PERSONAS],
+                'to' => RequestStatus::EN_RRHH,
+            ]],
+            'observe' => [
+                [
+                    'role' => UserRole::GESTION_PERSONAS,
+                    'from' => [RequestStatus::EN_GESTION_PERSONAS],
+                    'to' => RequestStatus::OBSERVADA,
+                    'comment_required' => true,
+                ],
+                [
+                    'role' => UserRole::RRHH,
+                    'from' => [RequestStatus::EN_RRHH],
+                    'to' => RequestStatus::EN_GESTION_PERSONAS,
+                    'comment_required' => true,
+                ],
+            ],
+            'reject' => [[
+                'role' => UserRole::RRHH,
+                'from' => [RequestStatus::EN_RRHH],
+                'to' => RequestStatus::RECHAZADA,
+                'comment_required' => true,
+            ]],
+            'approve_rrhh' => [[
+                'role' => UserRole::RRHH,
+                'from' => [RequestStatus::EN_RRHH],
+                'to' => RequestStatus::EN_TRAMITACION_CONTRATO,
+            ]],
+            'mark_contract_done' => [[
+                'role' => UserRole::GESTION_PERSONAS,
+                'from' => [RequestStatus::EN_TRAMITACION_CONTRATO],
+                'to' => RequestStatus::FINALIZADA,
+            ]],
+        ];
     }
 
     private function logAction(
