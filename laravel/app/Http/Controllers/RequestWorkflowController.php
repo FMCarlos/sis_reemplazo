@@ -6,21 +6,27 @@ use App\Models\Request as WorkflowRequest;
 use App\Services\RequestWorkflowService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use InvalidArgumentException;
 use RuntimeException;
 
 class RequestWorkflowController extends Controller
 {
-    public function send(Request $httpRequest, WorkflowRequest $request, RequestWorkflowService $workflowService): JsonResponse
+    public function perform(Request $httpRequest, WorkflowRequest $request, string $action, RequestWorkflowService $workflowService): JsonResponse
     {
-        $this->authorize('send', $request);
+        $this->authorize('actions', $request);
 
         try {
             $updatedRequest = $workflowService->apply(
                 $request,
                 $httpRequest->user(),
-                'send',
-                $httpRequest->input('comment')
+                $action,
+                $httpRequest->string('comment')->toString()
             );
+        } catch (InvalidArgumentException $exception) {
+            return response()->json([
+                'ok' => false,
+                'message' => $exception->getMessage(),
+            ], 404);
         } catch (RuntimeException $exception) {
             return response()->json([
                 'ok' => false,
@@ -30,11 +36,16 @@ class RequestWorkflowController extends Controller
 
         return response()->json([
             'ok' => true,
-            'message' => 'Solicitud enviada correctamente.',
+            'message' => 'Acción aplicada correctamente.',
             'data' => [
                 'id' => $updatedRequest->id,
                 'status' => $updatedRequest->status->value,
             ],
         ]);
+    }
+
+    public function send(Request $httpRequest, WorkflowRequest $request, RequestWorkflowService $workflowService): JsonResponse
+    {
+        return $this->perform($httpRequest, $request, 'send', $workflowService);
     }
 }
