@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\RequestStatus;
 use App\Http\Requests\StoreRequestRequest;
+use App\Services\RequestWorkflowService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
