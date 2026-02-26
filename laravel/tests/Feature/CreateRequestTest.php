@@ -13,7 +13,7 @@ class CreateRequestTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_jefe_servicio_can_create_a_draft_request_from_form(): void
+    public function test_jefe_servicio_can_create_a_draft_request_via_json(): void
     {
         $service = Service::query()->create(['name' => 'Cirugía']);
 
@@ -22,14 +22,23 @@ class CreateRequestTest extends TestCase
             'service_id' => $service->id,
         ]);
 
-        $response = $this->actingAs($jefe)->post(route('requests.store'), [
+        $response = $this->actingAs($jefe)->postJson(route('requests.store'), [
             'motivo' => 'Licencia médica',
             'fecha_inicio' => '2026-03-01',
             'fecha_fin' => '2026-03-15',
             'nombre_reemplazo' => 'Candidato Demo',
         ]);
 
-        $response->assertRedirect(route('requests.index'));
+        $response
+            ->assertCreated()
+            ->assertJsonPath('ok', true)
+            ->assertJsonPath('message', 'Solicitud creada en borrador.')
+            ->assertJsonPath('data.status', RequestStatus::BORRADOR->value)
+            ->assertJsonStructure([
+                'ok',
+                'message',
+                'data' => ['id', 'status'],
+            ]);
 
         $this->assertDatabaseHas('requests', [
             'service_id' => $service->id,
@@ -40,6 +49,27 @@ class CreateRequestTest extends TestCase
             'fecha_fin' => '2026-03-15',
             'nombre_reemplazo' => 'Candidato Demo',
         ]);
+    }
+
+    public function test_store_returns_validation_errors_in_json_with_422_status(): void
+    {
+        $service = Service::query()->create(['name' => 'Cirugía']);
+
+        $jefe = User::factory()->create([
+            'role' => UserRole::JEFE_SERVICIO,
+            'service_id' => $service->id,
+        ]);
+
+        $response = $this->actingAs($jefe)->postJson(route('requests.store'), [
+            'motivo' => '',
+            'fecha_inicio' => '2026-03-10',
+            'fecha_fin' => '2026-03-01',
+            'nombre_reemplazo' => '',
+        ]);
+
+        $response
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['motivo', 'fecha_fin', 'nombre_reemplazo']);
     }
 
     public function test_rrhh_cannot_access_create_form_or_store(): void
@@ -53,7 +83,7 @@ class CreateRequestTest extends TestCase
             ->assertForbidden();
 
         $this->actingAs($rrhh)
-            ->post(route('requests.store'), [
+            ->postJson(route('requests.store'), [
                 'motivo' => 'X',
                 'fecha_inicio' => '2026-03-01',
                 'fecha_fin' => '2026-03-02',
@@ -74,7 +104,7 @@ class CreateRequestTest extends TestCase
             ->assertForbidden();
 
         $this->actingAs($jefe)
-            ->post(route('requests.store'), [
+            ->postJson(route('requests.store'), [
                 'motivo' => 'X',
                 'fecha_inicio' => '2026-03-01',
                 'fecha_fin' => '2026-03-02',

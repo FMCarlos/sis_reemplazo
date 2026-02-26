@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\RequestStatus;
 use App\Http\Requests\StoreRequestRequest;
 use Illuminate\Contracts\View\View;
-use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class RequestController extends Controller
@@ -32,14 +32,14 @@ class RequestController extends Controller
         return view('requests.create');
     }
 
-    public function store(StoreRequestRequest $request): RedirectResponse
+    public function store(StoreRequestRequest $request): JsonResponse
     {
         $this->authorize('create', \App\Models\Request::class);
 
         $user = $request->user();
         $validated = $request->validated();
 
-        \App\Models\Request::query()->create([
+        $createdRequest = \App\Models\Request::query()->create([
             'service_id' => $user->service_id,
             'created_by' => $user->id,
             'status' => RequestStatus::BORRADOR,
@@ -49,8 +49,13 @@ class RequestController extends Controller
             'nombre_reemplazo' => $validated['nombre_reemplazo'],
         ]);
 
-        return redirect()
-            ->route('requests.index')
-            ->with('status', 'Solicitud creada en borrador.');
+        return response()->json([
+            'ok' => true,
+            'message' => 'Solicitud creada en borrador.',
+            'data' => [
+                'id' => $createdRequest->id,
+                'status' => $createdRequest->status->value,
+            ],
+        ], 201);
     }
 }
