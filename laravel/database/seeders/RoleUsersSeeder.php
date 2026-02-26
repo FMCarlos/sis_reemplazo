@@ -12,7 +12,8 @@ class RoleUsersSeeder extends Seeder
 {
     public function run(): void
     {
-        $service = Service::query()->firstOrCreate(['name' => 'Servicio General']);
+        $service = Service::query()->orderBy('name')->first()
+            ?? Service::query()->create(['name' => 'Servicio General']);
 
         User::query()->updateOrCreate(
             ['email' => 'jefe.servicio@example.com'],
