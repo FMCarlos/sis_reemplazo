@@ -18,12 +18,18 @@ class Request extends Model
         'service_id',
         'created_by',
         'status',
+        'motivo',
+        'fecha_inicio',
+        'fecha_fin',
+        'nombre_reemplazo',
     ];
 
     protected function casts(): array
     {
         return [
             'status' => RequestStatus::class,
+            'fecha_inicio' => 'date',
+            'fecha_fin' => 'date',
         ];
     }
 

@@ -14,6 +14,12 @@ class RequestPolicy
         return in_array($user->role, UserRole::cases(), true);
     }
 
+    public function create(User $user): bool
+    {
+        return $user->role === UserRole::JEFE_SERVICIO
+            && $user->service_id !== null;
+    }
+
     public function view(User $user, Request $request): bool
     {
         if (in_array($user->role, [UserRole::GESTION_PERSONAS, UserRole::RRHH], true)) {
