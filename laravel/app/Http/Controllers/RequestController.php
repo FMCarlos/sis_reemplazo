@@ -2,19 +2,20 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\RequestStatus;
 use App\Http\Requests\StoreRequestRequest;
-use App\Services\RequestWorkflowService;
+use App\Models\Request as WorkflowRequest;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
+use Illuminate\Http\Request as HttpRequest;
 
 class RequestController extends Controller
 {
-    public function index(Request $request): View
+    public function index(HttpRequest $request): View
     {
-        $this->authorize('viewAny', \App\Models\Request::class);
+        $this->authorize('viewAny', WorkflowRequest::class);
 
-        $requests = \App\Models\Request::query()
+        $requests = WorkflowRequest::query()
             ->with('service')
             ->visibleTo($request->user())
             ->latest()
@@ -25,21 +26,21 @@ class RequestController extends Controller
         ]);
     }
 
-    public function create(Request $request): View
+    public function create(HttpRequest $request): View
     {
-        $this->authorize('create', \App\Models\Request::class);
+        $this->authorize('create', WorkflowRequest::class);
 
         return view('requests.create');
     }
 
     public function store(StoreRequestRequest $request): JsonResponse
     {
-        $this->authorize('create', \App\Models\Request::class);
+        $this->authorize('create', WorkflowRequest::class);
 
         $user = $request->user();
         $validated = $request->validated();
 
-        $createdRequest = \App\Models\Request::query()->create([
+        $createdRequest = WorkflowRequest::query()->create([
             'service_id' => $user->service_id,
             'created_by' => $user->id,
             'status' => RequestStatus::BORRADOR,
