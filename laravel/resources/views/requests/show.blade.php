@@ -180,84 +180,86 @@
 
 @push('scripts')
 <script>
-    const requestId = @json($requestModel->id);
-    const workflowUrl = @json(url("/requests/{$requestModel->id}/actions"));
+    document.addEventListener('DOMContentLoaded', () => {
+        const requestId = @json($requestModel->id);
+        const workflowUrl = @json(url("/requests/{$requestModel->id}/actions"));
 
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    const toastElement = document.getElementById('workflowToast');
-    const toastBody = toastElement?.querySelector('.toast-body');
-    const toast = toastElement ? new bootstrap.Toast(toastElement) : null;
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        const toastElement = document.getElementById('workflowToast');
+        const toastBody = toastElement?.querySelector('.toast-body');
+        const toast = toastElement ? new window.bootstrap.Toast(toastElement) : null;
 
-    const showToast = (message, isError = false) => {
-        if (!toastElement || !toastBody || !toast) {
-            return;
-        }
-
-        toastElement.classList.toggle('text-bg-danger', isError);
-        toastElement.classList.toggle('text-bg-success', !isError);
-        toastBody.textContent = message;
-        toast.show();
-    };
-
-    const runWorkflowAction = async (action, comment = null) => {
-        const response = await fetch(`${workflowUrl}/${action}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken,
-                'Accept': 'application/json',
-            },
-            body: JSON.stringify({ comment }),
-        });
-
-        const payload = await response.json();
-
-        if (!response.ok || payload.ok !== true) {
-            throw new Error(payload.message || 'No fue posible aplicar la acción.');
-        }
-
-        showToast(payload.message || 'Acción ejecutada correctamente.');
-        window.location.reload();
-    };
-
-    document.querySelectorAll('[data-workflow-action]').forEach((button) => {
-        button.addEventListener('click', async () => {
-            try {
-                await runWorkflowAction(button.dataset.workflowAction);
-            } catch (error) {
-                showToast(error.message, true);
-            }
-        });
-    });
-
-    const commentModalElement = document.getElementById('commentActionModal');
-    const commentActionName = document.getElementById('commentActionName');
-    const actionComment = document.getElementById('actionComment');
-    const commentForm = document.getElementById('commentActionForm');
-
-    if (commentModalElement && commentActionName && actionComment && commentForm) {
-        commentModalElement.addEventListener('show.bs.modal', (event) => {
-            const button = event.relatedTarget;
-            commentActionName.value = button?.dataset?.workflowCommentAction || '';
-            actionComment.value = '';
-        });
-
-        commentForm.addEventListener('submit', async (event) => {
-            event.preventDefault();
-
-            if (!actionComment.value.trim()) {
-                showToast('Debes ingresar un comentario.', true);
+        const showToast = (message, isError = false) => {
+            if (!toastElement || !toastBody || !toast) {
                 return;
             }
 
-            try {
-                await runWorkflowAction(commentActionName.value, actionComment.value.trim());
-                const modal = bootstrap.Modal.getInstance(commentModalElement);
-                modal?.hide();
-            } catch (error) {
-                showToast(error.message, true);
+            toastElement.classList.toggle('text-bg-danger', isError);
+            toastElement.classList.toggle('text-bg-success', !isError);
+            toastBody.textContent = message;
+            toast.show();
+        };
+
+        const runWorkflowAction = async (action, comment = null) => {
+            const response = await fetch(`${workflowUrl}/${action}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({ comment }),
+            });
+
+            const payload = await response.json();
+
+            if (!response.ok || payload.ok !== true) {
+                throw new Error(payload.message || 'No fue posible aplicar la acción.');
             }
+
+            showToast(payload.message || 'Acción ejecutada correctamente.');
+            window.location.reload();
+        };
+
+        document.querySelectorAll('[data-workflow-action]').forEach((button) => {
+            button.addEventListener('click', async () => {
+                try {
+                    await runWorkflowAction(button.dataset.workflowAction);
+                } catch (error) {
+                    showToast(error.message, true);
+                }
+            });
         });
-    }
+
+        const commentModalElement = document.getElementById('commentActionModal');
+        const commentActionName = document.getElementById('commentActionName');
+        const actionComment = document.getElementById('actionComment');
+        const commentForm = document.getElementById('commentActionForm');
+
+        if (commentModalElement && commentActionName && actionComment && commentForm) {
+            commentModalElement.addEventListener('show.bs.modal', (event) => {
+                const button = event.relatedTarget;
+                commentActionName.value = button?.dataset?.workflowCommentAction || '';
+                actionComment.value = '';
+            });
+
+            commentForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+
+                if (!actionComment.value.trim()) {
+                    showToast('Debes ingresar un comentario.', true);
+                    return;
+                }
+
+                try {
+                    await runWorkflowAction(commentActionName.value, actionComment.value.trim());
+                    const modal = window.bootstrap.Modal.getInstance(commentModalElement);
+                    modal?.hide();
+                } catch (error) {
+                    showToast(error.message, true);
+                }
+            });
+        }
+    });
 </script>
 @endpush
