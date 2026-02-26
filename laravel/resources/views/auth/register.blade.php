@@ -16,6 +16,19 @@
         </div>
 
         <div>
+            <label for="service_id" class="form-label">Servicio</label>
+            <select id="service_id" class="form-select" name="service_id" required>
+                <option value="" disabled @selected(old('service_id') === null)>Selecciona un servicio</option>
+                @foreach($services as $service)
+                    <option value="{{ $service->id }}" @selected((string) old('service_id') === (string) $service->id)>
+                        {{ $service->name }}
+                    </option>
+                @endforeach
+            </select>
+            @error('service_id') <small class="text-danger">{{ $message }}</small> @enderror
+        </div>
+
+        <div>
             <label for="password" class="form-label">Contraseña</label>
             <input id="password" class="form-control" type="password" name="password" required>
             @error('password') <small class="text-danger">{{ $message }}</small> @enderror
