@@ -38,6 +38,76 @@
         </div>
     </section>
 
+    <section class="card border-0 shadow-sm mb-4" id="filters-card">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h2 class="h6 mb-0">Filtros</h2>
+            <button
+                class="btn btn-sm btn-outline-secondary"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#requests-filters-collapse"
+                aria-expanded="false"
+                aria-controls="requests-filters-collapse"
+                id="filters-toggle"
+            >
+                Mostrar/Ocultar filtros
+            </button>
+        </div>
+        <div class="collapse" id="requests-filters-collapse">
+            <div class="card-body">
+                <form method="GET" action="{{ route('requests.index') }}" class="row g-3">
+                    <input type="hidden" name="tab" value="{{ $activeTab }}">
+
+                    <div class="col-md-3">
+                        <label for="estado" class="form-label">Estado</label>
+                        <select name="estado" id="estado" class="form-select">
+                            <option value="">Todos</option>
+                            @foreach ($availableStatuses as $status)
+                                <option value="{{ $status }}" @selected(($filters['estado'] ?? null) === $status)>
+                                    {{ $statusLabels[$status] ?? $status }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    @if ($canFilterService)
+                        <div class="col-md-3">
+                            <label for="servicio" class="form-label">Servicio</label>
+                            <select name="servicio" id="servicio" class="form-select">
+                                <option value="">Todos</option>
+                                @foreach ($services as $service)
+                                    <option value="{{ $service->id }}" @selected((string) ($filters['servicio'] ?? '') === (string) $service->id)>
+                                        {{ $service->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
+
+                    <div class="col-md-{{ $canFilterService ? '2' : '3' }}">
+                        <label for="created_from" class="form-label">Desde</label>
+                        <input type="date" name="created_from" id="created_from" class="form-control" value="{{ $filters['created_from'] ?? '' }}">
+                    </div>
+
+                    <div class="col-md-{{ $canFilterService ? '2' : '3' }}">
+                        <label for="created_to" class="form-label">Hasta</label>
+                        <input type="date" name="created_to" id="created_to" class="form-control" value="{{ $filters['created_to'] ?? '' }}">
+                    </div>
+
+                    <div class="col-md-{{ $canFilterService ? '2' : '3' }}">
+                        <label for="q" class="form-label">Buscar</label>
+                        <input type="text" name="q" id="q" class="form-control" value="{{ $filters['q'] ?? '' }}" placeholder="ID, motivo, nombre reemplazo">
+                    </div>
+
+                    <div class="col-12 d-flex gap-2 justify-content-end">
+                        <a href="{{ route('requests.index', ['tab' => $activeTab]) }}" class="btn btn-outline-secondary">Limpiar</a>
+                        <button type="submit" class="btn btn-primary">Aplicar filtros</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+
     <section class="card border-0 shadow-sm mb-4">
         <div class="card-body pb-0">
             <ul class="nav nav-tabs">
@@ -46,65 +116,13 @@
                         $tabUrl = route('requests.index', array_merge($queryWithoutTab, ['tab' => $tabKey]));
                     @endphp
                     <li class="nav-item">
-                        <a class="nav-link {{ $activeTab === $tabKey ? 'active' : '' }}" href="{{ $tabUrl }}">
+                        <a class="nav-link {{ $activeTab === $tabKey ? 'active fw-semibold' : '' }}" href="{{ $tabUrl }}">
                             {{ $tab['label'] }}
                             <span class="badge rounded-pill text-bg-secondary ms-1">{{ $tabCounts[$tabKey] ?? 0 }}</span>
                         </a>
                     </li>
                 @endforeach
             </ul>
-        </div>
-    </section>
-
-    <section class="card border-0 shadow-sm mb-4">
-        <div class="card-body">
-            <form method="GET" action="{{ route('requests.index') }}" class="row g-3">
-                <input type="hidden" name="tab" value="{{ $activeTab }}">
-
-                <div class="col-md-3">
-                    <label for="estado" class="form-label">Estado</label>
-                    <select name="estado" id="estado" class="form-select">
-                        <option value="">Todos</option>
-                        @foreach ($availableStatuses as $status)
-                            <option value="{{ $status }}" @selected(($filters['estado'] ?? null) === $status)>{{ $status }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                @if ($canFilterService)
-                    <div class="col-md-3">
-                        <label for="servicio" class="form-label">Servicio</label>
-                        <select name="servicio" id="servicio" class="form-select">
-                            <option value="">Todos</option>
-                            @foreach ($services as $service)
-                                <option value="{{ $service->id }}" @selected((string) ($filters['servicio'] ?? '') === (string) $service->id)>
-                                    {{ $service->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                @endif
-
-                <div class="col-md-{{ $canFilterService ? '2' : '3' }}">
-                    <label for="created_from" class="form-label">Desde</label>
-                    <input type="date" name="created_from" id="created_from" class="form-control" value="{{ $filters['created_from'] ?? '' }}">
-                </div>
-
-                <div class="col-md-{{ $canFilterService ? '2' : '3' }}">
-                    <label for="created_to" class="form-label">Hasta</label>
-                    <input type="date" name="created_to" id="created_to" class="form-control" value="{{ $filters['created_to'] ?? '' }}">
-                </div>
-
-                <div class="col-md-{{ $canFilterService ? '2' : '3' }}">
-                    <label for="q" class="form-label">Buscar</label>
-                    <input type="text" name="q" id="q" class="form-control" value="{{ $filters['q'] ?? '' }}" placeholder="ID, motivo, reemplazo">
-                </div>
-
-                <div class="col-12 d-flex gap-2 justify-content-end">
-                    <a href="{{ route('requests.index', ['tab' => $activeTab]) }}" class="btn btn-outline-secondary">Limpiar</a>
-                    <button type="submit" class="btn btn-primary">Filtrar</button>
-                </div>
-            </form>
         </div>
     </section>
 
@@ -131,7 +149,7 @@
                             <td class="fw-semibold">#{{ $request->id }}</td>
                             <td>
                                 <span id="status-badge-{{ $request->id }}" class="badge text-bg-{{ $statusStyles[$status] ?? 'secondary' }}">
-                                    {{ $status }}
+                                    {{ $statusLabels[$status] ?? $status }}
                                 </span>
                             </td>
                             <td>{{ $request->service?->name ?? 'Sin servicio' }}</td>
@@ -169,7 +187,6 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-
             const statusClassMap = {
                 BORRADOR: 'text-bg-secondary',
                 OBSERVADA: 'text-bg-warning',
@@ -179,6 +196,17 @@
                 RECHAZADA: 'text-bg-danger',
                 EN_TRAMITACION_CONTRATO: 'text-bg-dark',
                 FINALIZADA: 'text-bg-success',
+            };
+
+            const statusLabelMap = {
+                BORRADOR: 'Pendiente',
+                OBSERVADA: 'Observada',
+                ENVIADA: 'En revisión',
+                EN_GESTION_PERSONAS: 'En gestión de personas',
+                EN_RRHH: 'En RRHH',
+                RECHAZADA: 'Rechazada',
+                EN_TRAMITACION_CONTRATO: 'En contrato',
+                FINALIZADA: 'Cerrada',
             };
 
             const showToast = (message, type = 'success') => {
@@ -213,7 +241,7 @@
 
                         if (badge) {
                             badge.className = `badge ${statusClassMap[result.data.status] ?? 'text-bg-secondary'}`;
-                            badge.textContent = result.data.status;
+                            badge.textContent = statusLabelMap[result.data.status] ?? result.data.status;
                         }
 
                         button.remove();

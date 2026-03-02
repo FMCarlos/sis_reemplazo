@@ -12,4 +12,18 @@ enum RequestStatus: string
     case RECHAZADA = 'RECHAZADA';
     case EN_TRAMITACION_CONTRATO = 'EN_TRAMITACION_CONTRATO';
     case FINALIZADA = 'FINALIZADA';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::BORRADOR => 'Pendiente',
+            self::ENVIADA => 'En revisión',
+            self::EN_GESTION_PERSONAS => 'En gestión de personas',
+            self::EN_RRHH => 'En RRHH',
+            self::OBSERVADA => 'Observada',
+            self::RECHAZADA => 'Rechazada',
+            self::EN_TRAMITACION_CONTRATO => 'En contrato',
+            self::FINALIZADA => 'Cerrada',
+        };
+    }
 }
