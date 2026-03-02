@@ -15,6 +15,8 @@
         'EN_TRAMITACION_CONTRATO' => 'dark',
         'FINALIZADA' => 'success',
     ];
+
+    $queryWithoutTab = request()->except(['tab', 'page']);
 @endphp
 
 @section('content')
@@ -28,11 +30,81 @@
         <div class="card-body d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
             <div>
                 <h1 class="h4 mb-2">Solicitudes de Reemplazo</h1>
-                <p class="text-muted mb-0">Listado de solicitudes reales cargadas desde la base de datos.</p>
+                <p class="text-muted mb-0">Usa bandejas y filtros para encontrar solicitudes rápidamente.</p>
             </div>
             @can('create', \App\Models\Request::class)
                 <a href="{{ route('requests.create') }}" class="btn btn-primary">Nueva Solicitud</a>
             @endcan
+        </div>
+    </section>
+
+    <section class="card border-0 shadow-sm mb-4">
+        <div class="card-body pb-0">
+            <ul class="nav nav-tabs">
+                @foreach ($tabs as $tabKey => $tab)
+                    @php
+                        $tabUrl = route('requests.index', array_merge($queryWithoutTab, ['tab' => $tabKey]));
+                    @endphp
+                    <li class="nav-item">
+                        <a class="nav-link {{ $activeTab === $tabKey ? 'active' : '' }}" href="{{ $tabUrl }}">
+                            {{ $tab['label'] }}
+                            <span class="badge rounded-pill text-bg-secondary ms-1">{{ $tabCounts[$tabKey] ?? 0 }}</span>
+                        </a>
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    </section>
+
+    <section class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ route('requests.index') }}" class="row g-3">
+                <input type="hidden" name="tab" value="{{ $activeTab }}">
+
+                <div class="col-md-3">
+                    <label for="estado" class="form-label">Estado</label>
+                    <select name="estado" id="estado" class="form-select">
+                        <option value="">Todos</option>
+                        @foreach ($availableStatuses as $status)
+                            <option value="{{ $status }}" @selected(($filters['estado'] ?? null) === $status)>{{ $status }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                @if ($canFilterService)
+                    <div class="col-md-3">
+                        <label for="servicio" class="form-label">Servicio</label>
+                        <select name="servicio" id="servicio" class="form-select">
+                            <option value="">Todos</option>
+                            @foreach ($services as $service)
+                                <option value="{{ $service->id }}" @selected((string) ($filters['servicio'] ?? '') === (string) $service->id)>
+                                    {{ $service->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                @endif
+
+                <div class="col-md-{{ $canFilterService ? '2' : '3' }}">
+                    <label for="created_from" class="form-label">Desde</label>
+                    <input type="date" name="created_from" id="created_from" class="form-control" value="{{ $filters['created_from'] ?? '' }}">
+                </div>
+
+                <div class="col-md-{{ $canFilterService ? '2' : '3' }}">
+                    <label for="created_to" class="form-label">Hasta</label>
+                    <input type="date" name="created_to" id="created_to" class="form-control" value="{{ $filters['created_to'] ?? '' }}">
+                </div>
+
+                <div class="col-md-{{ $canFilterService ? '2' : '3' }}">
+                    <label for="q" class="form-label">Buscar</label>
+                    <input type="text" name="q" id="q" class="form-control" value="{{ $filters['q'] ?? '' }}" placeholder="ID, motivo, reemplazo">
+                </div>
+
+                <div class="col-12 d-flex gap-2 justify-content-end">
+                    <a href="{{ route('requests.index', ['tab' => $activeTab]) }}" class="btn btn-outline-secondary">Limpiar</a>
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                </div>
+            </form>
         </div>
     </section>
 
@@ -79,11 +151,15 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="text-center text-muted py-4">Sin solicitudes por mostrar.</td>
+                            <td colspan="5" class="text-center text-muted py-4">Sin resultados para los filtros seleccionados.</td>
                         </tr>
                     @endforelse
                     </tbody>
                 </table>
+            </div>
+
+            <div class="mt-3">
+                {{ $requests->links() }}
             </div>
         </div>
     </section>
