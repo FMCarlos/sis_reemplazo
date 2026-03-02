@@ -15,6 +15,18 @@ class RoleUsersSeeder extends Seeder
         $service = Service::query()->orderBy('name')->first()
             ?? Service::query()->create(['name' => 'Servicio General']);
 
+
+        User::query()->updateOrCreate(
+            ['email' => 'admin@demo.cl'],
+            [
+                'name' => 'Administrador',
+                'password' => Hash::make('Password123!'),
+                'role' => UserRole::ADMIN,
+                'service_id' => null,
+                'email_verified_at' => now(),
+            ]
+        );
+
         User::query()->updateOrCreate(
             ['email' => 'jefe.servicio@example.com'],
             [

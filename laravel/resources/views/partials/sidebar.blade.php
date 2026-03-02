@@ -48,5 +48,11 @@
                 Bandeja RRHH
             </a>
         @endif
+
+        @if ($role === UserRole::ADMIN)
+            <a class="nav-link {{ Route::is('admin.users.*') ? 'active' : '' }}" href="{{ route('admin.users.index') }}">
+                Usuarios
+            </a>
+        @endif
     </nav>
 </div>
