@@ -22,8 +22,7 @@
 
         <button class="btn btn-primary" type="submit">Entrar</button>
 
-        <div class="d-flex justify-content-between">
-            <a href="{{ route('register') }}">Crear cuenta</a>
+        <div class="d-flex justify-content-end">
             <a href="{{ route('password.request') }}">¿Olvidaste tu contraseña?</a>
         </div>
     </form>
