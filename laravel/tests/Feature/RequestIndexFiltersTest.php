@@ -100,7 +100,7 @@ class RequestIndexFiltersTest extends TestCase
 
         $response = $this->actingAs($admin)
             ->get(route('requests.index', [
-                'tab' => 'activas',
+                'tab' => 'en_revision',
                 'servicio' => $serviceA->id,
             ]));
 

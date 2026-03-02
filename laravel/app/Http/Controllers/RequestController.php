@@ -19,7 +19,11 @@ class RequestController extends Controller
         $this->authorize('viewAny', WorkflowRequest::class);
 
         $user = $request->user();
-        $allowedStatuses = array_map(static fn (RequestStatus $status) => $status->value, RequestStatus::cases());
+        $statusCases = RequestStatus::cases();
+        $allowedStatuses = array_map(static fn (RequestStatus $status) => $status->value, $statusCases);
+        $statusLabels = collect($statusCases)
+            ->mapWithKeys(fn (RequestStatus $status) => [$status->value => $status->label()])
+            ->all();
 
         $validated = $request->validate([
             'tab' => ['nullable', 'string'],
@@ -87,6 +91,7 @@ class RequestController extends Controller
             'services' => $services,
             'canFilterService' => $canFilterService,
             'availableStatuses' => $allowedStatuses,
+            'statusLabels' => $statusLabels,
         ]);
     }
 
@@ -119,23 +124,28 @@ class RequestController extends Controller
                 ],
             ],
             UserRole::GESTION_PERSONAS => [
-                'por_gestionar' => [
-                    'label' => 'Por gestionar',
+                'en_gestion' => [
+                    'label' => 'En gestión',
                     'statuses' => [
                         RequestStatus::ENVIADA->value,
                         RequestStatus::EN_GESTION_PERSONAS->value,
                     ],
                 ],
-                'derivadas' => [
-                    'label' => 'Derivadas a RRHH',
+                'en_rrhh' => [
+                    'label' => 'En RRHH',
                     'statuses' => [
                         RequestStatus::EN_RRHH->value,
                     ],
                 ],
-                'cierre' => [
-                    'label' => 'Cierre',
+                'en_contrato' => [
+                    'label' => 'En contrato',
                     'statuses' => [
                         RequestStatus::EN_TRAMITACION_CONTRATO->value,
+                    ],
+                ],
+                'cerradas' => [
+                    'label' => 'Cerradas',
+                    'statuses' => [
                         RequestStatus::FINALIZADA->value,
                         RequestStatus::RECHAZADA->value,
                         RequestStatus::OBSERVADA->value,
@@ -143,16 +153,21 @@ class RequestController extends Controller
                 ],
             ],
             UserRole::RRHH => [
-                'por_revisar' => [
-                    'label' => 'Por revisar',
+                'pendientes' => [
+                    'label' => 'Pendientes',
                     'statuses' => [
                         RequestStatus::EN_RRHH->value,
                     ],
                 ],
-                'resueltas' => [
-                    'label' => 'Resueltas',
+                'en_contrato' => [
+                    'label' => 'En contrato',
                     'statuses' => [
                         RequestStatus::EN_TRAMITACION_CONTRATO->value,
+                    ],
+                ],
+                'cerradas' => [
+                    'label' => 'Cerradas',
+                    'statuses' => [
                         RequestStatus::FINALIZADA->value,
                         RequestStatus::RECHAZADA->value,
                         RequestStatus::OBSERVADA->value,
@@ -160,21 +175,36 @@ class RequestController extends Controller
                 ],
             ],
             UserRole::ADMIN => [
-                'activas' => [
-                    'label' => 'Activas',
+                'pendientes' => [
+                    'label' => 'Pendientes',
                     'statuses' => [
                         RequestStatus::BORRADOR->value,
+                    ],
+                ],
+                'en_revision' => [
+                    'label' => 'En revisión',
+                    'statuses' => [
                         RequestStatus::ENVIADA->value,
                         RequestStatus::EN_GESTION_PERSONAS->value,
+                    ],
+                ],
+                'en_rrhh' => [
+                    'label' => 'En RRHH',
+                    'statuses' => [
                         RequestStatus::EN_RRHH->value,
                         RequestStatus::OBSERVADA->value,
+                    ],
+                ],
+                'en_contrato' => [
+                    'label' => 'En contrato',
+                    'statuses' => [
+                        RequestStatus::EN_TRAMITACION_CONTRATO->value,
                     ],
                 ],
                 'cerradas' => [
                     'label' => 'Cerradas',
                     'statuses' => [
                         RequestStatus::RECHAZADA->value,
-                        RequestStatus::EN_TRAMITACION_CONTRATO->value,
                         RequestStatus::FINALIZADA->value,
                     ],
                 ],
