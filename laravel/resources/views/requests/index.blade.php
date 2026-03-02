@@ -46,14 +46,14 @@
                 type="button"
                 data-bs-toggle="collapse"
                 data-bs-target="#requests-filters-collapse"
-                aria-expanded="true"
+                aria-expanded="false"
                 aria-controls="requests-filters-collapse"
                 id="filters-toggle"
             >
                 Mostrar/Ocultar filtros
             </button>
         </div>
-        <div class="collapse show" id="requests-filters-collapse">
+        <div class="collapse" id="requests-filters-collapse">
             <div class="card-body">
                 <form method="GET" action="{{ route('requests.index') }}" class="row g-3">
                     <input type="hidden" name="tab" value="{{ $activeTab }}">
@@ -187,25 +187,6 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-            const filtersCollapseElement = document.getElementById('requests-filters-collapse');
-
-            if (filtersCollapseElement) {
-                const storageKey = 'requests.filters.expanded';
-                const storedState = localStorage.getItem(storageKey);
-
-                if (storedState === '0') {
-                    bootstrap.Collapse.getOrCreateInstance(filtersCollapseElement, { toggle: false }).hide();
-                }
-
-                filtersCollapseElement.addEventListener('shown.bs.collapse', () => {
-                    localStorage.setItem(storageKey, '1');
-                });
-
-                filtersCollapseElement.addEventListener('hidden.bs.collapse', () => {
-                    localStorage.setItem(storageKey, '0');
-                });
-            }
-
             const statusClassMap = {
                 BORRADOR: 'text-bg-secondary',
                 OBSERVADA: 'text-bg-warning',
