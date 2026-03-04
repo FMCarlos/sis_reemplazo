@@ -46,44 +46,60 @@ class RequestWorkflowService
         });
     }
 
-    public function send(WorkflowRequest $request, User $user): WorkflowRequest
+    public function send(User $actor, WorkflowRequest $request, array $payload = []): WorkflowRequest
     {
-        return $this->applyTransition($request, $user, 'send');
+        return $this->apply($actor, $request, 'send', $payload);
     }
 
-    public function take(WorkflowRequest $request, User $user): WorkflowRequest
+    public function take(User $actor, WorkflowRequest $request, array $payload = []): WorkflowRequest
     {
-        return $this->applyTransition($request, $user, 'take');
+        return $this->apply($actor, $request, 'take', $payload);
     }
 
-    public function sendToRrhh(WorkflowRequest $request, User $user): WorkflowRequest
+    public function send_to_rrhh(User $actor, WorkflowRequest $request, array $payload = []): WorkflowRequest
     {
-        return $this->applyTransition($request, $user, 'send_to_rrhh');
+        return $this->apply($actor, $request, 'send_to_rrhh', $payload);
     }
 
-    public function observe(WorkflowRequest $request, User $user, ?string $comment = null): WorkflowRequest
+    public function observe(User $actor, WorkflowRequest $request, array $payload = []): WorkflowRequest
     {
-        return $this->applyTransition($request, $user, 'observe', $comment);
+        return $this->apply($actor, $request, 'observe', $payload);
     }
 
-    public function reject(WorkflowRequest $request, User $user, ?string $comment = null): WorkflowRequest
+    public function reject(User $actor, WorkflowRequest $request, array $payload = []): WorkflowRequest
     {
-        return $this->applyTransition($request, $user, 'reject', $comment);
+        return $this->apply($actor, $request, 'reject', $payload);
     }
 
-    public function approveRrhh(WorkflowRequest $request, User $user): WorkflowRequest
+    public function approve_rrhh(User $actor, WorkflowRequest $request, array $payload = []): WorkflowRequest
     {
-        return $this->applyTransition($request, $user, 'approve_rrhh');
+        return $this->apply($actor, $request, 'approve_rrhh', $payload);
     }
 
-    public function markContractDone(WorkflowRequest $request, User $user): WorkflowRequest
+    public function mark_contract_done(User $actor, WorkflowRequest $request, array $payload = []): WorkflowRequest
     {
-        return $this->applyTransition($request, $user, 'mark_contract_done');
+        return $this->apply($actor, $request, 'mark_contract_done', $payload);
     }
 
-    private function applyTransition(WorkflowRequest $request, User $user, string $action, ?string $comment = null): WorkflowRequest
+    public function sendToRrhh(User $actor, WorkflowRequest $request, array $payload = []): WorkflowRequest
+    {
+        return $this->send_to_rrhh($actor, $request, $payload);
+    }
+
+    public function approveRrhh(User $actor, WorkflowRequest $request, array $payload = []): WorkflowRequest
+    {
+        return $this->approve_rrhh($actor, $request, $payload);
+    }
+
+    public function markContractDone(User $actor, WorkflowRequest $request, array $payload = []): WorkflowRequest
+    {
+        return $this->mark_contract_done($actor, $request, $payload);
+    }
+
+    public function apply(User $actor, WorkflowRequest $request, string $action, array $payload = []): WorkflowRequest
     {
         $normalizedAction = str_replace('-', '_', $action);
+        $comment = isset($payload['comment']) ? trim((string) $payload['comment']) : null;
 
         $transitions = $this->transitions();
 
@@ -93,13 +109,13 @@ class RequestWorkflowService
 
         $fromStatus = $request->status;
         $transition = collect($transitions[$normalizedAction])
-            ->first(fn (array $rule) => $user->role === $rule['role'] && in_array($fromStatus, $rule['from'], true));
+            ->first(fn (array $rule) => $actor->role === $rule['role'] && in_array($fromStatus, $rule['from'], true));
 
         if ($transition === null) {
             throw new RuntimeException('No tienes permisos o la solicitud no está en un estado válido para esta acción.');
         }
 
-        if (($transition['owner_only'] ?? false) && $request->created_by !== $user->id) {
+        if (($transition['owner_only'] ?? false) && $request->created_by !== $actor->id) {
             throw new RuntimeException('Solo la jefatura creadora puede ejecutar esta acción.');
         }
 
@@ -107,13 +123,13 @@ class RequestWorkflowService
             throw new RuntimeException('Debe ingresar un comentario para esta acción.');
         }
 
-        return DB::transaction(function () use ($request, $user, $comment, $fromStatus, $transition, $normalizedAction) {
+        return DB::transaction(function () use ($request, $actor, $comment, $fromStatus, $transition, $normalizedAction) {
             $request->status = $transition['to'];
             $request->save();
 
             $this->logAction(
                 $request,
-                $user,
+                $actor,
                 $normalizedAction,
                 $fromStatus,
                 $transition['to'],

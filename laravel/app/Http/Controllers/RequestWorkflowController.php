@@ -13,45 +13,45 @@ class RequestWorkflowController extends Controller
 {
     public function send(Request $httpRequest, WorkflowRequest $request, RequestWorkflowService $workflowService): JsonResponse
     {
-        return $this->perform($request, fn () => $workflowService->send($request, $httpRequest->user()));
+        return $this->perform($request, fn () => $workflowService->send($httpRequest->user(), $request));
     }
 
     public function take(Request $httpRequest, WorkflowRequest $request, RequestWorkflowService $workflowService): JsonResponse
     {
-        return $this->perform($request, fn () => $workflowService->take($request, $httpRequest->user()));
+        return $this->perform($request, fn () => $workflowService->take($httpRequest->user(), $request));
     }
 
     public function sendToRrhh(Request $httpRequest, WorkflowRequest $request, RequestWorkflowService $workflowService): JsonResponse
     {
-        return $this->perform($request, fn () => $workflowService->sendToRrhh($request, $httpRequest->user()));
+        return $this->perform($request, fn () => $workflowService->send_to_rrhh($httpRequest->user(), $request));
     }
 
     public function observe(Request $httpRequest, WorkflowRequest $request, RequestWorkflowService $workflowService): JsonResponse
     {
         return $this->perform($request, fn () => $workflowService->observe(
-            $request,
             $httpRequest->user(),
-            $httpRequest->string('comment')->toString()
+            $request,
+            ['comment' => $httpRequest->string('comment')->toString()]
         ));
     }
 
     public function reject(Request $httpRequest, WorkflowRequest $request, RequestWorkflowService $workflowService): JsonResponse
     {
         return $this->perform($request, fn () => $workflowService->reject(
-            $request,
             $httpRequest->user(),
-            $httpRequest->string('comment')->toString()
+            $request,
+            ['comment' => $httpRequest->string('comment')->toString()]
         ));
     }
 
     public function approveRrhh(Request $httpRequest, WorkflowRequest $request, RequestWorkflowService $workflowService): JsonResponse
     {
-        return $this->perform($request, fn () => $workflowService->approveRrhh($request, $httpRequest->user()));
+        return $this->perform($request, fn () => $workflowService->approve_rrhh($httpRequest->user(), $request));
     }
 
     public function markContractDone(Request $httpRequest, WorkflowRequest $request, RequestWorkflowService $workflowService): JsonResponse
     {
-        return $this->perform($request, fn () => $workflowService->markContractDone($request, $httpRequest->user()));
+        return $this->perform($request, fn () => $workflowService->mark_contract_done($httpRequest->user(), $request));
     }
 
     private function perform(WorkflowRequest $request, callable $callback): JsonResponse
