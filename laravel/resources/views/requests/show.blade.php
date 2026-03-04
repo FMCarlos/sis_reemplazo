@@ -176,20 +176,24 @@
     </div>
 @endsection
 
+@php
+    $initialCan = [
+        'send' => auth()->user()->can('send', $requestModel),
+        'take' => auth()->user()->can('take', $requestModel),
+        'send_to_rrhh' => auth()->user()->can('sendToRrhh', $requestModel),
+        'approve_rrhh' => auth()->user()->can('approveRrhh', $requestModel),
+        'mark_contract_done' => auth()->user()->can('markContractDone', $requestModel),
+        'observe' => auth()->user()->can('observe', $requestModel),
+        'reject' => auth()->user()->can('reject', $requestModel),
+    ];
+@endphp
+
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const workflowUrl = @json(url("/requests/{$requestModel->id}/actions"));
         const statusStyles = @json($statusStyles);
-        const initialCan = @json([
-            'send' => auth()->user()->can('send', $requestModel),
-            'take' => auth()->user()->can('take', $requestModel),
-            'send_to_rrhh' => auth()->user()->can('sendToRrhh', $requestModel),
-            'approve_rrhh' => auth()->user()->can('approveRrhh', $requestModel),
-            'mark_contract_done' => auth()->user()->can('markContractDone', $requestModel),
-            'observe' => auth()->user()->can('observe', $requestModel),
-            'reject' => auth()->user()->can('reject', $requestModel),
-        ]);
+        const initialCan = @json($initialCan);
         const statusBadge = document.getElementById('requestStatusBadge');
         const workflowActionsContainer = document.getElementById('workflowActionsContainer');
         const noWorkflowActionsMessage = document.getElementById('noWorkflowActionsMessage');
