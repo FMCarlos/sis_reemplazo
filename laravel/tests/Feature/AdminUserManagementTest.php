@@ -59,4 +59,38 @@ class AdminUserManagementTest extends TestCase
         $response->assertRedirect('/admin/users/create');
         $response->assertSessionHasErrors('service_id');
     }
+
+    public function test_admin_can_soft_delete_another_user(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+        $userToDelete = User::factory()->create(['role' => UserRole::RRHH]);
+
+        $response = $this->actingAs($admin)
+            ->delete(route('admin.users.destroy', $userToDelete));
+
+        $response->assertRedirect('/admin/users');
+        $response->assertSessionHas('status', 'Usuario eliminado correctamente.');
+
+        $this->assertSoftDeleted('users', [
+            'id' => $userToDelete->id,
+        ]);
+    }
+
+    public function test_admin_cannot_delete_himself(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+
+        $response = $this->actingAs($admin)
+            ->from('/admin/users')
+            ->delete(route('admin.users.destroy', $admin));
+
+        $response->assertRedirect('/admin/users');
+        $response->assertSessionHasErrors('delete_user');
+
+        $this->assertDatabaseHas('users', [
+            'id' => $admin->id,
+            'deleted_at' => null,
+        ]);
+    }
+
 }
