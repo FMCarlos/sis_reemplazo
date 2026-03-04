@@ -17,11 +17,15 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/requests/{request}', [RequestController::class, 'show'])->name('requests.show');
     Route::post('/requests', [RequestController::class, 'store'])->name('requests.store');
 
-    Route::post('/requests/{request}/actions/{action}', [RequestWorkflowController::class, 'perform'])
-        ->name('requests.actions.perform');
-
-    Route::post('/requests/{request}/actions/send', [RequestWorkflowController::class, 'send'])
-        ->name('requests.actions.send');
+    Route::prefix('/requests/{request}/actions')->name('requests.actions.')->group(function () {
+        Route::post('/send', [RequestWorkflowController::class, 'send'])->name('send');
+        Route::post('/take', [RequestWorkflowController::class, 'take'])->name('take');
+        Route::post('/send-to-rrhh', [RequestWorkflowController::class, 'sendToRrhh'])->name('send_to_rrhh');
+        Route::post('/observe', [RequestWorkflowController::class, 'observe'])->name('observe');
+        Route::post('/reject', [RequestWorkflowController::class, 'reject'])->name('reject');
+        Route::post('/approve-rrhh', [RequestWorkflowController::class, 'approveRrhh'])->name('approve_rrhh');
+        Route::post('/mark-contract-done', [RequestWorkflowController::class, 'markContractDone'])->name('mark_contract_done');
+    });
 
     Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
         Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
