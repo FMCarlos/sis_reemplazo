@@ -56,7 +56,7 @@ class CreateRequestTest extends TestCase
         $this->assertDatabaseHas('request_actions', [
             'request_id' => $createdRequest->id,
             'user_id' => $jefe->id,
-            'action' => 'create',
+            'action' => 'create_draft',
             'from_status' => RequestStatus::BORRADOR->value,
             'to_status' => RequestStatus::BORRADOR->value,
             'comment' => null,

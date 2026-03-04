@@ -8,17 +8,25 @@ use App\Models\Request as WorkflowRequest;
 use App\Models\RequestAction;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use InvalidArgumentException;
 use RuntimeException;
 
 class RequestWorkflowService
 {
-    public function createDraft(User $user, array $attributes): WorkflowRequest
+    public function createDraft(User $actor, array $payload): WorkflowRequest
     {
-        return DB::transaction(function () use ($user, $attributes) {
+        $attributes = Validator::make($payload, [
+            'motivo' => ['required', 'string', 'max:255'],
+            'fecha_inicio' => ['required', 'date'],
+            'fecha_fin' => ['required', 'date', 'after_or_equal:fecha_inicio'],
+            'nombre_reemplazo' => ['required', 'string', 'max:255'],
+        ])->validate();
+
+        return DB::transaction(function () use ($actor, $attributes) {
             $request = WorkflowRequest::query()->create([
-                'service_id' => $user->service_id,
-                'created_by' => $user->id,
+                'service_id' => $actor->service_id,
+                'created_by' => $actor->id,
                 'status' => RequestStatus::BORRADOR,
                 'motivo' => $attributes['motivo'],
                 'fecha_inicio' => $attributes['fecha_inicio'],
@@ -28,8 +36,8 @@ class RequestWorkflowService
 
             $this->logAction(
                 $request,
-                $user,
-                'create',
+                $actor,
+                'create_draft',
                 RequestStatus::BORRADOR,
                 RequestStatus::BORRADOR
             );

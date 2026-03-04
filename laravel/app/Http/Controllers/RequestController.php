@@ -7,6 +7,7 @@ use App\Enums\UserRole;
 use App\Http\Requests\StoreRequestRequest;
 use App\Models\Request as WorkflowRequest;
 use App\Models\Service;
+use App\Services\RequestWorkflowService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request as HttpRequest;
@@ -14,6 +15,8 @@ use Illuminate\Validation\Rule;
 
 class RequestController extends Controller
 {
+    public function __construct(private readonly RequestWorkflowService $requestWorkflowService) {}
+
     public function index(HttpRequest $request): View
     {
         $this->authorize('viewAny', WorkflowRequest::class);
@@ -270,17 +273,7 @@ class RequestController extends Controller
         $this->authorize('create', WorkflowRequest::class);
 
         $user = $request->user();
-        $validated = $request->validated();
-
-        $createdRequest = WorkflowRequest::query()->create([
-            'service_id' => $user->service_id,
-            'created_by' => $user->id,
-            'status' => RequestStatus::BORRADOR,
-            'motivo' => $validated['motivo'],
-            'fecha_inicio' => $validated['fecha_inicio'],
-            'fecha_fin' => $validated['fecha_fin'],
-            'nombre_reemplazo' => $validated['nombre_reemplazo'],
-        ]);
+        $createdRequest = $this->requestWorkflowService->createDraft($user, $request->validated());
 
         return response()->json([
             'ok' => true,
