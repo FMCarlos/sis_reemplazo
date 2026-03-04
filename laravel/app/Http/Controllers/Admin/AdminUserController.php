@@ -105,6 +105,18 @@ class AdminUserController extends Controller
                 ->withErrors(['delete_user' => 'No puedes eliminar tu propio usuario.']);
         }
 
+        $isLastAdmin = $user->role === UserRole::ADMIN
+            && User::query()
+                ->where('role', UserRole::ADMIN)
+                ->whereKeyNot($user->id)
+                ->count() === 0;
+
+        if ($isLastAdmin) {
+            return redirect()
+                ->route('admin.users.index')
+                ->withErrors(['delete_user' => 'No puedes eliminar al último administrador del sistema.']);
+        }
+
         $user->delete();
 
         return redirect()

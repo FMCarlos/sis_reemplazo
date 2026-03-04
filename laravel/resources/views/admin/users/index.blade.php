@@ -39,11 +39,13 @@
                             <td class="text-end">
                                 <div class="d-inline-flex gap-2">
                                     <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-sm btn-outline-primary">Editar</a>
-                                    <form method="POST" action="{{ route('admin.users.destroy', $user) }}" class="d-inline" onsubmit="return confirm('¿Seguro que deseas eliminar este usuario?');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button>
-                                    </form>
+                                    @if (auth()->id() !== $user->id)
+                                        <form method="POST" action="{{ route('admin.users.destroy', $user) }}" class="d-inline" onsubmit="return confirm('¿Seguro que deseas eliminar este usuario? Esta acción desactivará su acceso.');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button>
+                                        </form>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
