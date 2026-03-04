@@ -38,7 +38,42 @@ class RequestWorkflowService
         });
     }
 
-    public function apply(WorkflowRequest $request, User $user, string $action, ?string $comment = null): WorkflowRequest
+    public function send(WorkflowRequest $request, User $user): WorkflowRequest
+    {
+        return $this->applyTransition($request, $user, 'send');
+    }
+
+    public function take(WorkflowRequest $request, User $user): WorkflowRequest
+    {
+        return $this->applyTransition($request, $user, 'take');
+    }
+
+    public function sendToRrhh(WorkflowRequest $request, User $user): WorkflowRequest
+    {
+        return $this->applyTransition($request, $user, 'send_to_rrhh');
+    }
+
+    public function observe(WorkflowRequest $request, User $user, ?string $comment = null): WorkflowRequest
+    {
+        return $this->applyTransition($request, $user, 'observe', $comment);
+    }
+
+    public function reject(WorkflowRequest $request, User $user, ?string $comment = null): WorkflowRequest
+    {
+        return $this->applyTransition($request, $user, 'reject', $comment);
+    }
+
+    public function approveRrhh(WorkflowRequest $request, User $user): WorkflowRequest
+    {
+        return $this->applyTransition($request, $user, 'approve_rrhh');
+    }
+
+    public function markContractDone(WorkflowRequest $request, User $user): WorkflowRequest
+    {
+        return $this->applyTransition($request, $user, 'mark_contract_done');
+    }
+
+    private function applyTransition(WorkflowRequest $request, User $user, string $action, ?string $comment = null): WorkflowRequest
     {
         $normalizedAction = str_replace('-', '_', $action);
 

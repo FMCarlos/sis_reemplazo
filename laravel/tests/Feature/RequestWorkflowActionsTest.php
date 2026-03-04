@@ -38,11 +38,11 @@ class RequestWorkflowActionsTest extends TestCase
             'status' => RequestStatus::BORRADOR,
         ]);
 
-        $this->actingAs($jefe)->postJson(route('requests.actions.perform', [$request, 'send']))->assertOk();
-        $this->actingAs($gestion)->postJson(route('requests.actions.perform', [$request, 'take']))->assertOk();
-        $this->actingAs($gestion)->postJson(route('requests.actions.perform', [$request, 'send_to_rrhh']))->assertOk();
-        $this->actingAs($rrhh)->postJson(route('requests.actions.perform', [$request, 'approve_rrhh']))->assertOk();
-        $this->actingAs($gestion)->postJson(route('requests.actions.perform', [$request, 'mark_contract_done']))->assertOk();
+        $this->actingAs($jefe)->postJson(route('requests.actions.send', $request))->assertOk();
+        $this->actingAs($gestion)->postJson(route('requests.actions.take', $request))->assertOk();
+        $this->actingAs($gestion)->postJson(route('requests.actions.send_to_rrhh', $request))->assertOk();
+        $this->actingAs($rrhh)->postJson(route('requests.actions.approve_rrhh', $request))->assertOk();
+        $this->actingAs($gestion)->postJson(route('requests.actions.mark_contract_done', $request))->assertOk();
 
         $this->assertDatabaseHas('requests', [
             'id' => $request->id,
@@ -67,12 +67,12 @@ class RequestWorkflowActionsTest extends TestCase
         ]);
 
         $observeResponse = $this->actingAs($rrhh)
-            ->postJson(route('requests.actions.perform', [$request, 'observe']), ['comment' => '']);
+            ->postJson(route('requests.actions.observe', $request), ['comment' => '']);
 
         $observeResponse->assertStatus(422);
 
         $rejectResponse = $this->actingAs($rrhh)
-            ->postJson(route('requests.actions.perform', [$request, 'reject']), ['comment' => 'Falta documentación']);
+            ->postJson(route('requests.actions.reject', $request), ['comment' => 'Falta documentación']);
 
         $rejectResponse->assertOk();
 
