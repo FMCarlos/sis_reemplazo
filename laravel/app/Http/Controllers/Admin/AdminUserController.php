@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\Service;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -94,5 +95,20 @@ class AdminUserController extends Controller
         $user->update($validated);
 
         return redirect()->route('admin.users.index')->with('status', 'Usuario actualizado correctamente.');
+    }
+
+    public function destroy(User $user): RedirectResponse
+    {
+        if (Auth::id() === $user->id) {
+            return redirect()
+                ->route('admin.users.index')
+                ->withErrors(['delete_user' => 'No puedes eliminar tu propio usuario.']);
+        }
+
+        $user->delete();
+
+        return redirect()
+            ->route('admin.users.index')
+            ->with('status', 'Usuario eliminado correctamente.');
     }
 }

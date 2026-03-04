@@ -14,6 +14,10 @@
                 <div class="alert alert-success">{{ session('status') }}</div>
             @endif
 
+            @if ($errors->has('delete_user'))
+                <div class="alert alert-danger">{{ $errors->first('delete_user') }}</div>
+            @endif
+
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
                     <thead>
@@ -33,7 +37,14 @@
                             <td>{{ $user->role?->label() ?? '-' }}</td>
                             <td>{{ $user->service?->name ?? '-' }}</td>
                             <td class="text-end">
-                                <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-sm btn-outline-primary">Editar</a>
+                                <div class="d-inline-flex gap-2">
+                                    <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-sm btn-outline-primary">Editar</a>
+                                    <form method="POST" action="{{ route('admin.users.destroy', $user) }}" class="d-inline" onsubmit="return confirm('¿Seguro que deseas eliminar este usuario?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                     @empty
