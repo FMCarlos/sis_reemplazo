@@ -42,7 +42,7 @@
                 </div>
                 <div class="col-md-4">
                     <small class="text-muted d-block">Estado</small>
-                    <span class="badge text-bg-{{ $statusStyles[$status] ?? 'secondary' }}">{{ $status }}</span>
+                    <span id="requestStatusBadge" class="badge text-bg-{{ $statusStyles[$status] ?? 'secondary' }}">{{ $status }}</span>
                 </div>
                 <div class="col-md-4">
                     <small class="text-muted d-block">Servicio</small>
@@ -76,7 +76,7 @@
         <div class="card-header bg-white border-0 pb-0">
             <h2 class="h5 mb-0">Acciones</h2>
         </div>
-        <div class="card-body d-flex flex-wrap gap-2 align-items-center">
+        <div id="workflowActionsContainer" class="card-body d-flex flex-wrap gap-2 align-items-center">
             @can('send', $requestModel)
                 <button type="button" class="btn btn-primary" data-workflow-action="send">Enviar</button>
             @endcan
@@ -105,9 +105,7 @@
                 <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#commentActionModal" data-workflow-comment-action="reject">Rechazar</button>
             @endcan
 
-            @cannot('actions', $requestModel)
-                <span class="text-muted">No tienes acciones disponibles para esta solicitud.</span>
-            @endcannot
+            <span id="noWorkflowActionsMessage" class="text-muted d-none">No tienes acciones disponibles para esta solicitud.</span>
         </div>
     </section>
 
@@ -127,7 +125,7 @@
                         <th>Comentario</th>
                     </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="requestActionsHistoryBody">
                     @forelse ($requestModel->actions as $action)
                         <tr>
                             <td>{{ $action->created_at?->format('Y-m-d H:i') }}</td>
@@ -137,7 +135,7 @@
                             <td>{{ $action->comment ?: '—' }}</td>
                         </tr>
                     @empty
-                        <tr>
+                        <tr id="emptyHistoryRow">
                             <td colspan="5" class="text-center text-muted py-4">No hay acciones registradas.</td>
                         </tr>
                     @endforelse
@@ -181,8 +179,21 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const requestId = @json($requestModel->id);
         const workflowUrl = @json(url("/requests/{$requestModel->id}/actions"));
+        const statusStyles = @json($statusStyles);
+        const initialCan = @json([
+            'send' => auth()->user()->can('send', $requestModel),
+            'take' => auth()->user()->can('take', $requestModel),
+            'send_to_rrhh' => auth()->user()->can('sendToRrhh', $requestModel),
+            'approve_rrhh' => auth()->user()->can('approveRrhh', $requestModel),
+            'mark_contract_done' => auth()->user()->can('markContractDone', $requestModel),
+            'observe' => auth()->user()->can('observe', $requestModel),
+            'reject' => auth()->user()->can('reject', $requestModel),
+        ]);
+        const statusBadge = document.getElementById('requestStatusBadge');
+        const workflowActionsContainer = document.getElementById('workflowActionsContainer');
+        const noWorkflowActionsMessage = document.getElementById('noWorkflowActionsMessage');
+        const actionsHistoryBody = document.getElementById('requestActionsHistoryBody');
 
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
         const toastElement = document.getElementById('workflowToast');
@@ -217,9 +228,106 @@
                 throw new Error(payload.message || 'No fue posible aplicar la acción.');
             }
 
+            await updateWorkflowUi(payload.data || {});
             showToast(payload.message || 'Acción ejecutada correctamente.');
-            window.location.reload();
+            return payload;
         };
+
+        const updateStatusBadge = (status) => {
+            if (!statusBadge || !status) {
+                return;
+            }
+
+            const style = statusStyles[status] || 'secondary';
+            statusBadge.className = `badge text-bg-${style}`;
+            statusBadge.textContent = status;
+        };
+
+        const updateActionsVisibility = (can = {}) => {
+            if (!workflowActionsContainer) {
+                return;
+            }
+
+            const actionButtons = workflowActionsContainer.querySelectorAll('[data-workflow-action], [data-workflow-comment-action]');
+            let visibleCount = 0;
+
+            actionButtons.forEach((button) => {
+                const actionName = button.dataset.workflowAction || button.dataset.workflowCommentAction;
+                const allowed = Boolean(can[actionName]);
+                button.classList.toggle('d-none', !allowed);
+
+                if (allowed) {
+                    visibleCount += 1;
+                }
+            });
+
+            if (noWorkflowActionsMessage) {
+                noWorkflowActionsMessage.classList.toggle('d-none', visibleCount > 0);
+            }
+        };
+
+        const prependActionRow = (latestAction) => {
+            if (!actionsHistoryBody || !latestAction) {
+                return;
+            }
+
+            const emptyRow = document.getElementById('emptyHistoryRow');
+            if (emptyRow) {
+                emptyRow.remove();
+            }
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${latestAction.created_at ?? '—'}</td>
+                <td>${latestAction.user ?? 'Usuario eliminado'}</td>
+                <td>${latestAction.action ?? '—'}</td>
+                <td>${latestAction.from_status ?? '—'} -&gt; ${latestAction.to_status ?? '—'}</td>
+                <td>${latestAction.comment ?? '—'}</td>
+            `;
+
+            actionsHistoryBody.prepend(row);
+        };
+
+        const refreshStateFromCurrentPage = async () => {
+            const response = await fetch(window.location.href, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error('No fue posible refrescar el estado de la solicitud.');
+            }
+
+            const html = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+
+            const nextBadge = doc.querySelector('#requestStatusBadge');
+            if (nextBadge && statusBadge) {
+                statusBadge.className = nextBadge.className;
+                statusBadge.textContent = nextBadge.textContent;
+            }
+
+            const nextHistoryBody = doc.querySelector('#requestActionsHistoryBody');
+            if (nextHistoryBody && actionsHistoryBody) {
+                actionsHistoryBody.innerHTML = nextHistoryBody.innerHTML;
+            }
+        };
+
+        const updateWorkflowUi = async (data) => {
+            updateStatusBadge(data.status);
+            updateActionsVisibility(data.can || {});
+
+            if (data.latest_action) {
+                prependActionRow(data.latest_action);
+                return;
+            }
+
+            await refreshStateFromCurrentPage();
+        };
+
+        updateActionsVisibility(initialCan);
 
         document.querySelectorAll('[data-workflow-action]').forEach((button) => {
             button.addEventListener('click', async () => {
