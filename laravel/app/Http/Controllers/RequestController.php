@@ -9,6 +9,7 @@ use App\Models\Request as WorkflowRequest;
 use App\Models\Service;
 use App\Services\RequestWorkflowService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request as HttpRequest;
 use Illuminate\Validation\Rule;
@@ -57,22 +58,35 @@ class RequestController extends Controller
         );
 
         $requests = (clone $baseQuery)
-            ->whereIn('status', $tabs[$activeTab]['statuses'])
-            ->when(
-                filled($validated['estado'] ?? null),
-                fn ($query) => $query->where('status', $validated['estado'])
-            )
+            ->whereIn('status', $tabs[$activeTab]['statuses']);
+
+        $this->applyStatusFilter($requests, $validated);
+
+        $requests = $requests
             ->latest()
             ->paginate(10)
             ->withQueryString();
 
-        $tabCounts = [];
         $countBaseQuery = WorkflowRequest::query()->visibleTo($user);
 
+        $this->applyCommonFilters(
+            $countBaseQuery,
+            $validated,
+            $canFilterService
+        );
+
+        $this->applyStatusFilter($countBaseQuery, $validated);
+
+        $statusCounts = (clone $countBaseQuery)
+            ->selectRaw('status, COUNT(*) as aggregate_count')
+            ->groupBy('status')
+            ->pluck('aggregate_count', 'status');
+
+        $tabCounts = [];
+
         foreach ($tabs as $tabKey => $tab) {
-            $tabCounts[$tabKey] = (clone $countBaseQuery)
-                ->whereIn('status', $tab['statuses'])
-                ->count();
+            $tabCounts[$tabKey] = collect($tab['statuses'])
+                ->sum(fn (string $status): int => (int) ($statusCounts[$status] ?? 0));
         }
 
         $services = $canFilterService
@@ -243,6 +257,14 @@ class RequestController extends Controller
                         ->orWhere('nombre_reemplazo', 'like', "%{$term}%");
                 });
             });
+    }
+
+    private function applyStatusFilter(Builder $query, array $validated): void
+    {
+        $query->when(
+            filled($validated['estado'] ?? null),
+            fn (Builder $builder) => $builder->where('status', $validated['estado'])
+        );
     }
 
     public function create(HttpRequest $request): View

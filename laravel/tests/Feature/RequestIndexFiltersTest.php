@@ -109,4 +109,64 @@ class RequestIndexFiltersTest extends TestCase
             ->assertSeeText('#'.$serviceARequest->id)
             ->assertDontSeeText('#'.$serviceBRequest->id);
     }
+
+    public function test_tab_counts_respect_active_search_filter(): void
+    {
+        $service = Service::query()->create(['name' => 'Urgencias']);
+
+        $admin = User::factory()->create([
+            'role' => UserRole::ADMIN,
+        ]);
+
+        $creator = User::factory()->create([
+            'role' => UserRole::JEFE_SERVICIO,
+            'service_id' => $service->id,
+        ]);
+
+        Request::query()->create([
+            'service_id' => $service->id,
+            'created_by' => $creator->id,
+            'status' => RequestStatus::BORRADOR,
+            'motivo' => 'Cobertura UTI',
+            'fecha_inicio' => '2026-03-01',
+            'fecha_fin' => '2026-03-05',
+            'nombre_reemplazo' => 'Ana Soto',
+        ]);
+
+        Request::query()->create([
+            'service_id' => $service->id,
+            'created_by' => $creator->id,
+            'status' => RequestStatus::ENVIADA,
+            'motivo' => 'Reemplazo general',
+            'fecha_inicio' => '2026-03-01',
+            'fecha_fin' => '2026-03-05',
+            'nombre_reemplazo' => 'Carlos Ruiz',
+        ]);
+
+        Request::query()->create([
+            'service_id' => $service->id,
+            'created_by' => $creator->id,
+            'status' => RequestStatus::FINALIZADA,
+            'motivo' => 'Otra cobertura',
+            'fecha_inicio' => '2026-03-01',
+            'fecha_fin' => '2026-03-05',
+            'nombre_reemplazo' => 'María López',
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->get(route('requests.index', [
+                'tab' => 'pendientes',
+                'q' => 'Ana',
+            ]));
+
+        $response->assertOk()
+            ->assertViewHas('tabCounts', function (array $tabCounts): bool {
+                return ($tabCounts['pendientes'] ?? null) === 1
+                    && ($tabCounts['en_revision'] ?? null) === 0
+                    && ($tabCounts['en_rrhh'] ?? null) === 0
+                    && ($tabCounts['en_contrato'] ?? null) === 0
+                    && ($tabCounts['cerradas'] ?? null) === 0;
+            });
+    }
+
 }
