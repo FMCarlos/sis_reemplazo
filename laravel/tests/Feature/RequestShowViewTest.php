@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\RequestStatus;
+use App\Enums\UserRole;
 use App\Models\Request;
 use App\Models\RequestAction;
 use App\Models\Service;
@@ -66,5 +67,63 @@ class RequestShowViewTest extends TestCase
             'send',
             'draft',
         ]);
+    }
+
+    public function test_admin_can_view_request_detail_from_any_service_and_creator(): void
+    {
+        $serviceA = Service::query()->create(['name' => 'Urgencias']);
+
+        $admin = User::factory()->create([
+            'role' => UserRole::ADMIN,
+        ]);
+
+        $creator = User::factory()->create([
+            'service_id' => $serviceA->id,
+        ]);
+
+        $request = Request::query()->create([
+            'service_id' => $serviceA->id,
+            'created_by' => $creator->id,
+            'status' => RequestStatus::ENVIADA,
+            'motivo' => 'Cobertura interservicio',
+            'fecha_inicio' => '2026-04-01',
+            'fecha_fin' => '2026-04-15',
+            'nombre_reemplazo' => 'Sofía Díaz',
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->get(route('requests.show', $request));
+
+        $response->assertOk()
+            ->assertSeeText('Detalle solicitud')
+            ->assertSeeText('Cobertura interservicio');
+    }
+
+    public function test_non_admin_user_keeps_existing_visibility_restrictions(): void
+    {
+        $serviceA = Service::query()->create(['name' => 'Urgencias']);
+        $serviceB = Service::query()->create(['name' => 'Pediatría']);
+
+        $jefe = User::factory()->create([
+            'service_id' => $serviceA->id,
+        ]);
+
+        $otherCreator = User::factory()->create([
+            'service_id' => $serviceB->id,
+        ]);
+
+        $request = Request::query()->create([
+            'service_id' => $serviceB->id,
+            'created_by' => $otherCreator->id,
+            'status' => RequestStatus::ENVIADA,
+            'motivo' => 'Solicitud restringida',
+            'fecha_inicio' => '2026-05-01',
+            'fecha_fin' => '2026-05-10',
+            'nombre_reemplazo' => 'Luis Pérez',
+        ]);
+
+        $this->actingAs($jefe)
+            ->get(route('requests.show', $request))
+            ->assertForbidden();
     }
 }

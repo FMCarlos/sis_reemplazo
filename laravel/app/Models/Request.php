@@ -35,7 +35,11 @@ class Request extends Model
 
     public function scopeVisibleTo(Builder $query, User $user): Builder
     {
-        if (in_array($user->role, [UserRole::ADMIN, UserRole::GESTION_PERSONAS, UserRole::RRHH], true)) {
+        if ($user->role === UserRole::ADMIN) {
+            return $query;
+        }
+
+        if (in_array($user->role, [UserRole::GESTION_PERSONAS, UserRole::RRHH], true)) {
             return $query;
         }
 
