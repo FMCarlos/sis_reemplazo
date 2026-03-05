@@ -63,4 +63,21 @@ class Request extends Model
     {
         return $this->hasMany(Attachment::class);
     }
+
+    public function getStatusLabelAttribute(): string
+    {
+        return $this->status?->label() ?? (string) $this->getAttribute('status');
+    }
+
+    public function badgeClass(): string
+    {
+        return match ($this->status) {
+            RequestStatus::BORRADOR => 'bg-primary',
+            RequestStatus::ENVIADA, RequestStatus::EN_GESTION_PERSONAS, RequestStatus::OBSERVADA => 'bg-warning text-dark',
+            RequestStatus::EN_RRHH, RequestStatus::EN_TRAMITACION_CONTRATO => 'bg-info',
+            RequestStatus::RECHAZADA => 'bg-danger',
+            RequestStatus::FINALIZADA => 'bg-success',
+            default => 'bg-secondary',
+        };
+    }
 }

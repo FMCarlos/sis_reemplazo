@@ -5,18 +5,16 @@
 @section('breadcrumb', 'Inicio / Solicitudes')
 
 @php
-    $statusStyles = [
-        'BORRADOR' => 'secondary',
-        'OBSERVADA' => 'warning',
-        'ENVIADA' => 'primary',
-        'EN_GESTION_PERSONAS' => 'info',
-        'EN_RRHH' => 'info',
-        'RECHAZADA' => 'danger',
-        'EN_TRAMITACION_CONTRATO' => 'dark',
-        'FINALIZADA' => 'success',
-    ];
-
     $queryWithoutTab = request()->except(['tab', 'page']);
+
+    $trayColorByTab = [
+        'pendientes' => 'primary',
+        'en_revision' => 'warning',
+        'en_gestion' => 'warning',
+        'en_rrhh' => 'warning',
+        'en_contrato' => 'success',
+        'cerradas' => 'success',
+    ];
 @endphp
 
 @section('content')
@@ -98,23 +96,25 @@
 
     <section id="solicitudes-panel" class="card border-0 shadow-sm">
         <div class="card-header bg-white">
-            <div class="d-flex flex-column flex-md-row align-items-stretch align-items-md-center justify-content-between gap-2">
-                <ul class="nav nav-pills flex-wrap gap-2 flex-grow-1 mb-0">
+            <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                <div class="d-flex gap-2 flex-wrap">
                     @foreach ($tabs as $tabKey => $tab)
                         @php
                             $tabUrl = route('requests.index', array_merge($queryWithoutTab, ['tab' => $tabKey]));
+                            $color = $trayColorByTab[$tabKey] ?? 'secondary';
+                            $isActive = $activeTab === $tabKey;
                         @endphp
-                        <li class="nav-item">
-                            <a class="nav-link px-3 py-2 {{ $activeTab === $tabKey ? 'active fw-semibold' : 'text-body' }}" href="{{ $tabUrl }}">
-                                <span>{{ $tab['label'] }}</span>
-                                <span class="badge rounded-pill {{ $activeTab === $tabKey ? 'text-bg-light text-dark' : 'text-bg-secondary' }} ms-1">{{ $tabCounts[$tabKey] ?? 0 }}</span>
-                            </a>
-                        </li>
+                        <a
+                            class="btn btn-sm {{ $isActive ? 'btn-'.$color : 'btn-outline-'.$color }}"
+                            href="{{ $tabUrl }}"
+                        >
+                            {{ $tab['label'] }} ({{ $tabCounts[$tabKey] ?? 0 }})
+                        </a>
                     @endforeach
-                </ul>
+                </div>
 
                 @can('create', \App\Models\Request::class)
-                    <a href="{{ route('requests.create') }}" class="btn btn-sm btn-primary ms-md-auto align-self-md-center">+ Nueva solicitud</a>
+                    <a href="{{ route('requests.create') }}" class="btn btn-sm btn-primary">+ Nueva solicitud</a>
                 @endcan
             </div>
         </div>
@@ -137,21 +137,21 @@
                             $status = $request->status->value;
                             $canSend = auth()->user()->can('send', $request);
                         @endphp
-                        <tr id="request-row-{{ $request->id }}">
+                        <tr id="request-row-{{ $request->id }}" class="request-row" data-href="{{ route('requests.show', $request) }}">
                             <td class="fw-semibold">#{{ $request->id }}</td>
                             <td>
-                                <span id="status-badge-{{ $request->id }}" class="badge text-bg-{{ $statusStyles[$status] ?? 'secondary' }}">
-                                    {{ $statusLabels[$status] ?? $status }}
+                                <span id="status-badge-{{ $request->id }}" class="badge {{ $request->badgeClass() }}">
+                                    {{ $request->status_label }}
                                 </span>
                             </td>
                             <td>{{ $request->service?->name ?? 'Sin servicio' }}</td>
                             <td>{{ $request->created_at?->format('Y-m-d H:i') }}</td>
                             <td class="text-end">
-                                <a href="{{ route('requests.show', $request) }}" class="btn btn-sm btn-outline-secondary">Ver</a>
+                                <a href="{{ route('requests.show', $request) }}" class="btn btn-sm btn-outline-secondary js-row-action">Ver</a>
                                 @if($canSend)
                                     <button
                                         type="button"
-                                        class="btn btn-sm btn-primary btn-send"
+                                        class="btn btn-sm btn-primary btn-send js-row-action"
                                         data-request-id="{{ $request->id }}"
                                     >
                                         Enviar
@@ -180,14 +180,14 @@
         document.addEventListener('DOMContentLoaded', () => {
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
             const statusClassMap = {
-                BORRADOR: 'text-bg-secondary',
-                OBSERVADA: 'text-bg-warning',
-                ENVIADA: 'text-bg-primary',
-                EN_GESTION_PERSONAS: 'text-bg-info',
-                EN_RRHH: 'text-bg-info',
-                RECHAZADA: 'text-bg-danger',
-                EN_TRAMITACION_CONTRATO: 'text-bg-dark',
-                FINALIZADA: 'text-bg-success',
+                BORRADOR: 'bg-primary',
+                OBSERVADA: 'bg-warning text-dark',
+                ENVIADA: 'bg-warning text-dark',
+                EN_GESTION_PERSONAS: 'bg-warning text-dark',
+                EN_RRHH: 'bg-info',
+                RECHAZADA: 'bg-danger',
+                EN_TRAMITACION_CONTRATO: 'bg-info',
+                FINALIZADA: 'bg-success',
             };
 
             const statusLabelMap = {
@@ -200,6 +200,19 @@
                 EN_TRAMITACION_CONTRATO: 'En contrato',
                 FINALIZADA: 'Cerrada',
             };
+
+            document.querySelectorAll('.request-row').forEach((row) => {
+                row.style.cursor = 'pointer';
+                row.addEventListener('click', () => {
+                    window.location = row.dataset.href;
+                });
+            });
+
+            document.querySelectorAll('.js-row-action').forEach((action) => {
+                action.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                });
+            });
 
             const showToast = (message, type = 'success') => {
                 window.dispatchEvent(new CustomEvent('admin-toast', {
