@@ -186,12 +186,22 @@
         'observe' => auth()->user()->can('observe', $requestModel),
         'reject' => auth()->user()->can('reject', $requestModel),
     ];
+
+    $workflowActionUrls = [
+        'send' => route('requests.actions.send', $requestModel),
+        'take' => route('requests.actions.take', $requestModel),
+        'send_to_rrhh' => route('requests.actions.send_to_rrhh', $requestModel),
+        'observe' => route('requests.actions.observe', $requestModel),
+        'reject' => route('requests.actions.reject', $requestModel),
+        'approve_rrhh' => route('requests.actions.approve_rrhh', $requestModel),
+        'mark_contract_done' => route('requests.actions.mark_contract_done', $requestModel),
+    ];
 @endphp
 
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const workflowUrl = @json(url("/requests/{$requestModel->id}/actions"));
+        const workflowActionUrls = @json($workflowActionUrls);
         const statusStyles = @json($statusStyles);
         const initialCan = @json($initialCan);
         const statusBadge = document.getElementById('requestStatusBadge');
@@ -216,7 +226,13 @@
         };
 
         const runWorkflowAction = async (action, comment = null) => {
-            const response = await fetch(`${workflowUrl}/${action}`, {
+            const endpoint = workflowActionUrls[action];
+
+            if (!endpoint) {
+                throw new Error('La acción seleccionada no tiene endpoint configurado.');
+            }
+
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
