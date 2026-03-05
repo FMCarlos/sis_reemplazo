@@ -76,8 +76,9 @@ class Request extends Model
     public function badgeClass(): string
     {
         return match ($this->status) {
-            RequestStatus::BORRADOR => 'bg-primary',
-            RequestStatus::ENVIADA, RequestStatus::EN_GESTION_PERSONAS, RequestStatus::OBSERVADA => 'bg-warning text-dark',
+            RequestStatus::BORRADOR => 'bg-secondary',
+            RequestStatus::ENVIADA => 'bg-primary',
+            RequestStatus::EN_GESTION_PERSONAS, RequestStatus::OBSERVADA => 'bg-warning text-dark',
             RequestStatus::EN_RRHH, RequestStatus::EN_TRAMITACION_CONTRATO => 'bg-info',
             RequestStatus::RECHAZADA => 'bg-danger',
             RequestStatus::FINALIZADA => 'bg-success',
