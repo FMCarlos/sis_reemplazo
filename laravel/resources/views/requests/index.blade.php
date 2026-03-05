@@ -26,17 +26,10 @@
         </div>
     @endif
 
-    <section class="card border-0 shadow-sm mb-4">
-        <div class="card-body d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
-            <div>
-                <h1 class="h4 mb-2">Solicitudes de Reemplazo</h1>
-                <p class="text-muted mb-0">Usa bandejas y filtros para encontrar solicitudes rápidamente.</p>
-            </div>
-            @can('create', \App\Models\Request::class)
-                <a href="{{ route('requests.create') }}" class="btn btn-primary">Nueva Solicitud</a>
-            @endcan
-        </div>
-    </section>
+    <div class="mb-4">
+        <h1 class="h4 mb-1">Solicitudes de Reemplazo</h1>
+        <p class="text-muted mb-0 small">Usa bandejas y filtros para encontrar solicitudes rápidamente.</p>
+    </div>
 
     <section class="card border-0 shadow-sm mb-4" id="filters-card">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
@@ -108,25 +101,29 @@
         </div>
     </section>
 
-    <section class="card border-0 shadow-sm mb-4">
-        <div class="card-body pb-0">
-            <ul class="nav nav-tabs">
-                @foreach ($tabs as $tabKey => $tab)
-                    @php
-                        $tabUrl = route('requests.index', array_merge($queryWithoutTab, ['tab' => $tabKey]));
-                    @endphp
-                    <li class="nav-item">
-                        <a class="nav-link {{ $activeTab === $tabKey ? 'active fw-semibold' : '' }}" href="{{ $tabUrl }}">
-                            {{ $tab['label'] }}
-                            <span class="badge rounded-pill text-bg-secondary ms-1">{{ $tabCounts[$tabKey] ?? 0 }}</span>
-                        </a>
-                    </li>
-                @endforeach
-            </ul>
-        </div>
-    </section>
-
     <section id="solicitudes-panel" class="card border-0 shadow-sm">
+        <div class="card-header bg-white">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <ul class="nav nav-tabs border-bottom-0 flex-grow-1">
+                    @foreach ($tabs as $tabKey => $tab)
+                        @php
+                            $tabUrl = route('requests.index', array_merge($queryWithoutTab, ['tab' => $tabKey]));
+                        @endphp
+                        <li class="nav-item">
+                            <a class="nav-link {{ $activeTab === $tabKey ? 'active fw-semibold' : '' }}" href="{{ $tabUrl }}">
+                                {{ $tab['label'] }}
+                                <span class="badge rounded-pill text-bg-secondary ms-1">{{ $tabCounts[$tabKey] ?? 0 }}</span>
+                            </a>
+                        </li>
+                    @endforeach
+                </ul>
+
+                @can('create', \App\Models\Request::class)
+                    <a href="{{ route('requests.create') }}" class="btn btn-primary ms-md-auto">Nueva solicitud</a>
+                @endcan
+            </div>
+        </div>
+
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0 admin-table">
