@@ -26,11 +26,6 @@
         </div>
     @endif
 
-    <div class="mb-4">
-        <h1 class="h4 mb-1">Solicitudes de Reemplazo</h1>
-        <p class="text-muted mb-0 small">Usa bandejas y filtros para encontrar solicitudes rápidamente.</p>
-    </div>
-
     <section class="card border-0 shadow-sm mb-4" id="filters-card">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
             <h2 class="h6 mb-0">Filtros</h2>
@@ -103,23 +98,23 @@
 
     <section id="solicitudes-panel" class="card border-0 shadow-sm">
         <div class="card-header bg-white">
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                <ul class="nav nav-tabs border-bottom-0 flex-grow-1">
+            <div class="d-flex flex-column flex-md-row align-items-stretch align-items-md-center justify-content-between gap-2">
+                <ul class="nav nav-pills flex-wrap gap-2 flex-grow-1 mb-0">
                     @foreach ($tabs as $tabKey => $tab)
                         @php
                             $tabUrl = route('requests.index', array_merge($queryWithoutTab, ['tab' => $tabKey]));
                         @endphp
                         <li class="nav-item">
-                            <a class="nav-link {{ $activeTab === $tabKey ? 'active fw-semibold' : '' }}" href="{{ $tabUrl }}">
-                                {{ $tab['label'] }}
-                                <span class="badge rounded-pill text-bg-secondary ms-1">{{ $tabCounts[$tabKey] ?? 0 }}</span>
+                            <a class="nav-link px-3 py-2 {{ $activeTab === $tabKey ? 'active fw-semibold' : 'text-body' }}" href="{{ $tabUrl }}">
+                                <span>{{ $tab['label'] }}</span>
+                                <span class="badge rounded-pill {{ $activeTab === $tabKey ? 'text-bg-light text-dark' : 'text-bg-secondary' }} ms-1">{{ $tabCounts[$tabKey] ?? 0 }}</span>
                             </a>
                         </li>
                     @endforeach
                 </ul>
 
                 @can('create', \App\Models\Request::class)
-                    <a href="{{ route('requests.create') }}" class="btn btn-primary ms-md-auto">Nueva solicitud</a>
+                    <a href="{{ route('requests.create') }}" class="btn btn-sm btn-primary ms-md-auto align-self-md-center">+ Nueva solicitud</a>
                 @endcan
             </div>
         </div>
