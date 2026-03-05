@@ -36,63 +36,97 @@
 
     $currentIndex = array_search($baseStatus, $workflowSteps, true);
     $currentIndex = $currentIndex === false ? 0 : $currentIndex;
+
+    $statusProgressMap = [
+        'BORRADOR' => 0,
+        'ENVIADA' => 20,
+        'EN_GESTION_PERSONAS' => 40,
+        'EN_RRHH' => 60,
+        'EN_TRAMITACION_CONTRATO' => 80,
+        'FINALIZADA' => 100,
+    ];
+
+    $progressValue = $statusProgressMap[$baseStatus] ?? 0;
+
+    $actionLabelMap = [
+        'send' => 'Enviada',
+        'take' => 'Tomada',
+        'send_to_rrhh' => 'Enviada a RRHH',
+        'approve_rrhh' => 'Aprobada por RRHH',
+        'mark_contract_done' => 'Contrato en tramitación',
+        'observe' => 'Observada',
+        'reject' => 'Rechazada',
+        'create_draft' => 'Borrador creado',
+    ];
 @endphp
 
 @section('content')
     <style>
-        .workflow-stepper {
-            display: flex;
-            flex-wrap: wrap;
-            gap: .75rem;
-            padding: 0;
-            margin: 0;
+        .status-progress-wrapper .progress {
+            height: .45rem;
+        }
+
+        .activity-timeline {
+            position: relative;
             list-style: none;
+            margin: 0;
+            padding: 0;
         }
 
-        .workflow-step {
+        .activity-item {
             display: flex;
-            align-items: center;
-            gap: .5rem;
-            color: var(--bs-secondary-color);
+            gap: .85rem;
+            position: relative;
+            padding-bottom: 1.25rem;
         }
 
-        .workflow-step-dot {
-            width: 1.5rem;
-            height: 1.5rem;
+        .activity-item:last-child {
+            padding-bottom: 0;
+        }
+
+        .activity-dot-wrap {
+            position: relative;
+            min-height: 2.2rem;
+        }
+
+        .activity-dot {
+            width: .85rem;
+            height: .85rem;
             border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: .75rem;
-            font-weight: 700;
-            border: 2px solid var(--bs-secondary-color);
-            background: #fff;
+            margin-top: .45rem;
         }
 
-        .workflow-step.is-complete {
-            color: var(--bs-success);
+        .activity-line {
+            position: absolute;
+            top: 1.35rem;
+            left: .35rem;
+            bottom: -.2rem;
+            width: 2px;
+            background-color: var(--bs-border-color);
         }
 
-        .workflow-step.is-complete .workflow-step-dot {
-            border-color: var(--bs-success);
-            background-color: var(--bs-success);
-            color: #fff;
+        .activity-item:last-child .activity-line {
+            display: none;
         }
 
-        .workflow-step.is-current {
-            color: var(--bs-primary);
-            font-weight: 600;
+        .activity-content {
+            flex: 1;
+            background-color: var(--bs-light);
+            border: 1px solid var(--bs-border-color);
+            border-radius: .5rem;
+            padding: .75rem;
         }
 
-        .workflow-step.is-current .workflow-step-dot {
-            border-color: var(--bs-primary);
-            background-color: var(--bs-primary);
-            color: #fff;
+        .empty-activity {
+            border: 1px dashed var(--bs-border-color);
+            border-radius: .5rem;
+            padding: 2rem 1rem;
         }
 
         @media (max-width: 767.98px) {
-            .workflow-step {
-                width: 100%;
+            .request-detail-header {
+                flex-direction: column;
+                align-items: flex-start !important;
             }
         }
     </style>
@@ -112,62 +146,57 @@
 
                 <div id="workflowActionsContainer" class="d-flex flex-wrap justify-content-lg-end align-items-center gap-2">
                     <a href="{{ route('requests.index') }}" class="btn btn-outline-secondary">Volver al listado</a>
-
-                    @can('send', $requestModel)
-                        <button type="button" class="btn btn-primary" data-workflow-action="send">Enviar</button>
-                    @endcan
-                    @can('take', $requestModel)
-                        <button type="button" class="btn btn-outline-primary" data-workflow-action="take">Tomar en gestión</button>
-                    @endcan
-                    @can('sendToRrhh', $requestModel)
-                        <button type="button" class="btn btn-outline-info" data-workflow-action="send_to_rrhh">Enviar a RRHH</button>
-                    @endcan
-                    @can('approveRrhh', $requestModel)
-                        <button type="button" class="btn btn-success" data-workflow-action="approve_rrhh">Aprobar RRHH</button>
-                    @endcan
-                    @can('markContractDone', $requestModel)
-                        <button type="button" class="btn btn-dark" data-workflow-action="mark_contract_done">Marcar contrato finalizado</button>
-                    @endcan
-                    @can('observe', $requestModel)
-                        <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#commentActionModal" data-workflow-comment-action="observe">Observar</button>
-                    @endcan
-                    @can('reject', $requestModel)
-                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#commentActionModal" data-workflow-comment-action="reject">Rechazar</button>
-                    @endcan
-
-                    <small id="noWorkflowActionsMessage" class="text-muted d-none">No tienes acciones disponibles para esta solicitud.</small>
                 </div>
             </div>
-
-            <hr class="my-3">
-
-            <ul id="workflowStepper" class="workflow-stepper">
-                @foreach ($workflowSteps as $index => $step)
-                    @php
-                        $stepClass = $index < $currentIndex ? 'is-complete' : ($index === $currentIndex ? 'is-current' : '');
-                    @endphp
-                    <li class="workflow-step {{ $stepClass }}" data-step-status="{{ $step }}">
-                        <span class="workflow-step-dot">{{ $index + 1 }}</span>
-                        <span class="small">{{ $step }}</span>
-                    </li>
-                @endforeach
-            </ul>
         </div>
     </section>
 
     <section class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-white border-0 pb-0">
+        <div class="card-header bg-white border-0 pb-0 d-flex justify-content-between align-items-center gap-3 request-detail-header">
             <h2 class="h5 mb-0">Detalle solicitud</h2>
+            <div id="detailWorkflowActionsContainer" class="d-flex flex-wrap justify-content-lg-end align-items-center gap-2">
+                @can('send', $requestModel)
+                        <button type="button" class="btn btn-primary" data-workflow-action="send">Enviar</button>
+                @endcan
+                @can('take', $requestModel)
+                        <button type="button" class="btn btn-outline-primary" data-workflow-action="take">Tomar en gestión</button>
+                @endcan
+                @can('sendToRrhh', $requestModel)
+                        <button type="button" class="btn btn-outline-info" data-workflow-action="send_to_rrhh">Enviar a RRHH</button>
+                @endcan
+                @can('approveRrhh', $requestModel)
+                        <button type="button" class="btn btn-success" data-workflow-action="approve_rrhh">Aprobar RRHH</button>
+                @endcan
+                @can('markContractDone', $requestModel)
+                        <button type="button" class="btn btn-dark" data-workflow-action="mark_contract_done">Marcar contrato finalizado</button>
+                @endcan
+                @can('observe', $requestModel)
+                        <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#commentActionModal" data-workflow-comment-action="observe">Observar</button>
+                @endcan
+                @can('reject', $requestModel)
+                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#commentActionModal" data-workflow-comment-action="reject">Rechazar</button>
+                @endcan
+
+                <small id="noDetailWorkflowActionsMessage" class="text-muted d-none">No tienes acciones disponibles.</small>
+            </div>
         </div>
         <div class="card-body">
+            <div class="status-progress-wrapper mb-4">
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <small class="text-muted">Estado actual:</small>
+                    <span id="requestStatusBadge" class="badge {{ $requestModel->badgeClass() }}">{{ $status }}</span>
+                    <span id="specialStatusNote" class="small text-muted {{ $isSpecialStatus ? '' : 'd-none' }}">
+                        {{ $status === 'OBSERVADA' ? 'Observada (requiere ajustes).' : 'Rechazada.' }}
+                    </span>
+                </div>
+                <div class="progress" role="progressbar" aria-label="Progreso de solicitud" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ $progressValue }}">
+                    <div id="requestProgressBar" class="progress-bar bg-primary" style="width: {{ $progressValue }}%"></div>
+                </div>
+            </div>
             <div class="row g-3">
                 <div class="col-md-4">
                     <small class="text-muted d-block">ID</small>
                     <span class="fw-semibold">#{{ $requestModel->id }}</span>
-                </div>
-                <div class="col-md-4">
-                    <small class="text-muted d-block">Estado</small>
-                    <span id="requestStatusBadge" class="badge {{ $requestModel->badgeClass() }}">{{ $status }}</span>
                 </div>
                 <div class="col-md-4">
                     <small class="text-muted d-block">Servicio</small>
@@ -202,33 +231,35 @@
             <h2 class="h5 mb-0">Historial / Auditoría</h2>
         </div>
         <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                    <tr>
-                        <th>Fecha</th>
-                        <th>Usuario</th>
-                        <th>Acción</th>
-                        <th>From -&gt; To</th>
-                        <th>Comentario</th>
-                    </tr>
-                    </thead>
-                    <tbody id="requestActionsHistoryBody">
-                    @forelse ($requestModel->actions as $action)
-                        <tr>
-                            <td>{{ $action->created_at?->format('Y-m-d H:i') }}</td>
-                            <td>{{ $action->user?->name ?? 'Usuario eliminado' }}</td>
-                            <td>{{ $action->action }}</td>
-                            <td>{{ $action->from_status }} -&gt; {{ $action->to_status }}</td>
-                            <td>{{ $action->comment ?: '—' }}</td>
-                        </tr>
-                    @empty
-                        <tr id="emptyHistoryRow">
-                            <td colspan="5" class="text-center text-muted py-4">Aún no hay movimientos registrados para esta solicitud.</td>
-                        </tr>
-                    @endforelse
-                    </tbody>
-                </table>
+            <div id="requestActionsHistoryBody" class="activity-timeline">
+                @forelse ($requestModel->actions as $action)
+                    @php
+                        $toStatusClass = $statusClassMap[$action->to_status] ?? 'bg-secondary';
+                        $actionLabel = $actionLabelMap[$action->action] ?? ucfirst(str_replace('_', ' ', $action->action));
+                    @endphp
+                    <article class="activity-item">
+                        <div class="activity-dot-wrap">
+                            <span class="activity-dot d-block {{ $toStatusClass }}"></span>
+                            <span class="activity-line"></span>
+                        </div>
+                        <div class="activity-content">
+                            <div class="d-flex flex-column flex-md-row justify-content-between gap-1">
+                                <strong>{{ $actionLabel }}</strong>
+                                <small class="text-muted">{{ $action->created_at?->format('Y-m-d H:i') }} · {{ $action->created_at?->diffForHumans() }}</small>
+                            </div>
+                            <small class="text-muted d-block">Por {{ $action->user?->name ?? 'Usuario eliminado' }}</small>
+                            <small class="text-muted d-block" data-transition>{{ $action->from_status ?: '—' }} → {{ $action->to_status ?: '—' }}</small>
+                            @if ($action->comment)
+                                <p class="mb-0 mt-2 small">{{ $action->comment }}</p>
+                            @endif
+                        </div>
+                    </article>
+                @empty
+                    <div id="emptyHistoryRow" class="empty-activity text-center text-muted">
+                        <div class="fs-4 mb-2">🕒</div>
+                        <p class="mb-0">Aún no hay movimientos registrados para esta solicitud.</p>
+                    </div>
+                @endforelse
             </div>
         </div>
     </section>
@@ -292,14 +323,18 @@
         const workflowActionUrls = @json($workflowActionUrls);
         const statusClassMap = @json($statusClassMap);
         const workflowSteps = @json($workflowSteps);
+        const statusProgressMap = @json($statusProgressMap);
+        const actionLabelMap = @json($actionLabelMap);
         const initialCan = @json($initialCan);
 
         const statusBadge = document.getElementById('requestStatusBadge');
         const specialStatusBadge = document.getElementById('specialStatusBadge');
         const workflowActionsContainer = document.getElementById('workflowActionsContainer');
-        const noWorkflowActionsMessage = document.getElementById('noWorkflowActionsMessage');
+        const detailWorkflowActionsContainer = document.getElementById('detailWorkflowActionsContainer');
+        const noDetailWorkflowActionsMessage = document.getElementById('noDetailWorkflowActionsMessage');
         const actionsHistoryBody = document.getElementById('requestActionsHistoryBody');
-        const workflowStepper = document.getElementById('workflowStepper');
+        const requestProgressBar = document.getElementById('requestProgressBar');
+        const specialStatusNote = document.getElementById('specialStatusNote');
 
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
         const toastElement = document.getElementById('workflowToast');
@@ -354,30 +389,19 @@
             statusBadge.textContent = status;
         };
 
-        const updateTimeline = (status) => {
-            if (!workflowStepper || !status) {
+        const updateProgress = (status) => {
+            if (!requestProgressBar || !status) {
                 return;
             }
 
             const isSpecial = ['OBSERVADA', 'RECHAZADA'].includes(status);
-            const allRows = Array.from(actionsHistoryBody?.querySelectorAll('tr') || []);
-            const latestRowCells = allRows[0]?.querySelectorAll('td') || [];
-            const latestTransition = latestRowCells[3]?.textContent || '';
-            const fromStatus = latestTransition.split('->')[0]?.trim();
+            const latestActionItem = actionsHistoryBody?.querySelector('.activity-item');
+            const transitionText = latestActionItem?.querySelector('[data-transition]')?.textContent || '';
+            const fromStatus = transitionText.split('→')[0]?.trim();
             const baseStatus = isSpecial && workflowSteps.includes(fromStatus) ? fromStatus : status;
-            const currentIndex = Math.max(workflowSteps.indexOf(baseStatus), 0);
-
-            workflowStepper.querySelectorAll('[data-step-status]').forEach((item, index) => {
-                item.classList.remove('is-complete', 'is-current');
-
-                if (index < currentIndex) {
-                    item.classList.add('is-complete');
-                }
-
-                if (index === currentIndex) {
-                    item.classList.add('is-current');
-                }
-            });
+            const progressValue = statusProgressMap[baseStatus] ?? 0;
+            requestProgressBar.style.width = `${progressValue}%`;
+            requestProgressBar.parentElement?.setAttribute('aria-valuenow', String(progressValue));
 
             if (specialStatusBadge) {
                 specialStatusBadge.classList.toggle('d-none', !isSpecial);
@@ -386,14 +410,21 @@
                     specialStatusBadge.className = `badge border border-2 border-opacity-50 ${status === 'OBSERVADA' ? 'bg-warning text-dark' : 'bg-danger'}`;
                 }
             }
+
+            if (specialStatusNote) {
+                specialStatusNote.classList.toggle('d-none', !isSpecial);
+                if (isSpecial) {
+                    specialStatusNote.textContent = status === 'OBSERVADA' ? 'Observada (requiere ajustes).' : 'Rechazada.';
+                }
+            }
         };
 
         const updateActionsVisibility = (can = {}) => {
-            if (!workflowActionsContainer) {
+            if (!workflowActionsContainer || !detailWorkflowActionsContainer) {
                 return;
             }
 
-            const actionButtons = workflowActionsContainer.querySelectorAll('[data-workflow-action], [data-workflow-comment-action]');
+            const actionButtons = detailWorkflowActionsContainer.querySelectorAll('[data-workflow-action], [data-workflow-comment-action]');
             let visibleCount = 0;
 
             actionButtons.forEach((button) => {
@@ -406,12 +437,12 @@
                 }
             });
 
-            if (noWorkflowActionsMessage) {
-                noWorkflowActionsMessage.classList.toggle('d-none', visibleCount > 0);
+            if (noDetailWorkflowActionsMessage) {
+                noDetailWorkflowActionsMessage.classList.toggle('d-none', visibleCount > 0);
             }
         };
 
-        const prependActionRow = (latestAction) => {
+        const prependActionRow = (latestAction, currentStatus) => {
             if (!actionsHistoryBody || !latestAction) {
                 return;
             }
@@ -421,16 +452,28 @@
                 emptyRow.remove();
             }
 
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${latestAction.created_at ?? '—'}</td>
-                <td>${latestAction.user ?? 'Usuario eliminado'}</td>
-                <td>${latestAction.action ?? '—'}</td>
-                <td>${latestAction.from_status ?? '—'} -&gt; ${latestAction.to_status ?? '—'}</td>
-                <td>${latestAction.comment ?? '—'}</td>
+            const item = document.createElement('article');
+            const dotClass = statusClassMap[latestAction.to_status] || statusClassMap[currentStatus] || 'bg-secondary';
+            const actionLabel = actionLabelMap[latestAction.action] || latestAction.action || '—';
+
+            item.className = 'activity-item';
+            item.innerHTML = `
+                <div class="activity-dot-wrap">
+                    <span class="activity-dot d-block ${dotClass}"></span>
+                    <span class="activity-line"></span>
+                </div>
+                <div class="activity-content">
+                    <div class="d-flex flex-column flex-md-row justify-content-between gap-1">
+                        <strong>${actionLabel}</strong>
+                        <small class="text-muted">${latestAction.created_at ?? '—'}</small>
+                    </div>
+                    <small class="text-muted d-block">Por ${latestAction.user ?? 'Usuario eliminado'}</small>
+                    <small class="text-muted d-block" data-transition>${latestAction.from_status ?? '—'} → ${latestAction.to_status ?? '—'}</small>
+                    ${latestAction.comment && latestAction.comment !== '—' ? `<p class="mb-0 mt-2 small">${latestAction.comment}</p>` : ''}
+                </div>
             `;
 
-            actionsHistoryBody.prepend(row);
+            actionsHistoryBody.prepend(item);
         };
 
         const updateWorkflowUi = async (data) => {
@@ -438,14 +481,14 @@
             updateActionsVisibility(data.can || {});
 
             if (data.latest_action) {
-                prependActionRow(data.latest_action);
+                prependActionRow(data.latest_action, data.status);
             }
 
-            updateTimeline(data.status);
+            updateProgress(data.status);
         };
 
         updateActionsVisibility(initialCan);
-        updateTimeline(statusBadge?.textContent?.trim() || '');
+        updateProgress(statusBadge?.textContent?.trim() || '');
 
         document.querySelectorAll('[data-workflow-action]').forEach((button) => {
             button.addEventListener('click', async () => {
