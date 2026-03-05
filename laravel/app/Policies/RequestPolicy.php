@@ -11,6 +11,10 @@ class RequestPolicy
 {
     public function viewAny(User $user): bool
     {
+        if ($user->role === UserRole::ADMIN) {
+            return true;
+        }
+
         return in_array($user->role, UserRole::cases(), true);
     }
 
@@ -22,6 +26,10 @@ class RequestPolicy
 
     public function view(User $user, Request $request): bool
     {
+        if ($user->role === UserRole::ADMIN) {
+            return true;
+        }
+
         if (in_array($user->role, [UserRole::GESTION_PERSONAS, UserRole::RRHH], true)) {
             return true;
         }
