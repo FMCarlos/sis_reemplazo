@@ -8,6 +8,7 @@ use App\Http\Requests\StoreRequestRequest;
 use App\Models\Request as WorkflowRequest;
 use App\Models\Service;
 use App\Services\RequestWorkflowService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -18,7 +19,7 @@ class RequestController extends Controller
 {
     public function __construct(private readonly RequestWorkflowService $requestWorkflowService) {}
 
-    public function index(HttpRequest $request): View
+    public function index(HttpRequest $request): View|RedirectResponse
     {
         $this->authorize('viewAny', WorkflowRequest::class);
 
@@ -43,6 +44,10 @@ class RequestController extends Controller
 
         if (! isset($tabs[$activeTab])) {
             $activeTab = array_key_first($tabs);
+
+            return redirect()->route('requests.index', array_merge($request->query(), [
+                'tab' => $activeTab,
+            ]));
         }
 
         $canFilterService = in_array($user->role, [UserRole::ADMIN, UserRole::GESTION_PERSONAS, UserRole::RRHH], true);
@@ -114,119 +119,26 @@ class RequestController extends Controller
 
     private function tabConfigForRole(UserRole $role): array
     {
-        return match ($role) {
-            UserRole::JEFE_SERVICIO => [
-                'pendientes' => [
-                    'label' => 'Pendientes',
-                    'statuses' => [
-                        RequestStatus::BORRADOR->value,
-                        RequestStatus::OBSERVADA->value,
-                    ],
-                ],
-                'en_revision' => [
-                    'label' => 'En revisión',
-                    'statuses' => [
-                        RequestStatus::ENVIADA->value,
-                        RequestStatus::EN_GESTION_PERSONAS->value,
-                        RequestStatus::EN_RRHH->value,
-                    ],
-                ],
-                'cerradas' => [
-                    'label' => 'Cerradas',
-                    'statuses' => [
-                        RequestStatus::RECHAZADA->value,
-                        RequestStatus::EN_TRAMITACION_CONTRATO->value,
-                        RequestStatus::FINALIZADA->value,
-                    ],
-                ],
-            ],
-            UserRole::GESTION_PERSONAS => [
-                'en_gestion' => [
-                    'label' => 'En gestión',
-                    'statuses' => [
-                        RequestStatus::ENVIADA->value,
-                        RequestStatus::EN_GESTION_PERSONAS->value,
-                    ],
-                ],
-                'en_rrhh' => [
-                    'label' => 'En RRHH',
-                    'statuses' => [
-                        RequestStatus::EN_RRHH->value,
-                    ],
-                ],
-                'en_contrato' => [
-                    'label' => 'En contrato',
-                    'statuses' => [
-                        RequestStatus::EN_TRAMITACION_CONTRATO->value,
-                    ],
-                ],
-                'cerradas' => [
-                    'label' => 'Cerradas',
-                    'statuses' => [
-                        RequestStatus::FINALIZADA->value,
-                        RequestStatus::RECHAZADA->value,
-                        RequestStatus::OBSERVADA->value,
-                    ],
-                ],
-            ],
-            UserRole::RRHH => [
-                'pendientes' => [
-                    'label' => 'Pendientes',
-                    'statuses' => [
-                        RequestStatus::EN_RRHH->value,
-                    ],
-                ],
-                'en_contrato' => [
-                    'label' => 'En contrato',
-                    'statuses' => [
-                        RequestStatus::EN_TRAMITACION_CONTRATO->value,
-                    ],
-                ],
-                'cerradas' => [
-                    'label' => 'Cerradas',
-                    'statuses' => [
-                        RequestStatus::FINALIZADA->value,
-                        RequestStatus::RECHAZADA->value,
-                        RequestStatus::OBSERVADA->value,
-                    ],
-                ],
-            ],
-            UserRole::ADMIN => [
-                'pendientes' => [
-                    'label' => 'Pendientes',
-                    'statuses' => [
-                        RequestStatus::BORRADOR->value,
-                    ],
-                ],
-                'en_revision' => [
-                    'label' => 'En revisión',
-                    'statuses' => [
-                        RequestStatus::ENVIADA->value,
-                        RequestStatus::EN_GESTION_PERSONAS->value,
-                    ],
-                ],
-                'en_rrhh' => [
-                    'label' => 'En RRHH',
-                    'statuses' => [
-                        RequestStatus::EN_RRHH->value,
-                        RequestStatus::OBSERVADA->value,
-                    ],
-                ],
-                'en_contrato' => [
-                    'label' => 'En contrato',
-                    'statuses' => [
-                        RequestStatus::EN_TRAMITACION_CONTRATO->value,
-                    ],
-                ],
-                'cerradas' => [
-                    'label' => 'Cerradas',
-                    'statuses' => [
-                        RequestStatus::RECHAZADA->value,
-                        RequestStatus::FINALIZADA->value,
-                    ],
-                ],
-            ],
-        };
+        $config = config('requests_inbox_tabs');
+        $tabDefinitions = $config['definitions'] ?? [];
+        $tabOrder = $config['order'] ?? array_keys($tabDefinitions);
+        $tabsByRole = $config['roles'][$role->value] ?? [];
+
+        $tabs = [];
+
+        foreach ($tabOrder as $tabKey) {
+            if (! isset($tabsByRole[$tabKey], $tabDefinitions[$tabKey])) {
+                continue;
+            }
+
+            $tabs[$tabKey] = [
+                'label' => $tabDefinitions[$tabKey]['label'],
+                'colorClass' => $tabDefinitions[$tabKey]['colorClass'],
+                'statuses' => $tabsByRole[$tabKey],
+            ];
+        }
+
+        return $tabs;
     }
 
     private function applyCommonFilters($query, array $validated, bool $canFilterService): void

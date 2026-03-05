@@ -169,4 +169,35 @@ class RequestIndexFiltersTest extends TestCase
             });
     }
 
+    public function test_invalid_tab_is_redirected_to_default_allowed_tab_for_role(): void
+    {
+        $service = Service::query()->create(['name' => 'Urgencias']);
+
+        $rrhh = User::factory()->create([
+            'role' => UserRole::RRHH,
+        ]);
+
+        $creator = User::factory()->create([
+            'role' => UserRole::JEFE_SERVICIO,
+            'service_id' => $service->id,
+        ]);
+
+        Request::query()->create([
+            'service_id' => $service->id,
+            'created_by' => $creator->id,
+            'status' => RequestStatus::EN_RRHH,
+            'motivo' => 'Reemplazo',
+            'fecha_inicio' => '2026-03-01',
+            'fecha_fin' => '2026-03-05',
+            'nombre_reemplazo' => 'Nombre',
+        ]);
+
+        $response = $this->actingAs($rrhh)
+            ->get(route('requests.index', [
+                'tab' => 'en_revision',
+            ]));
+
+        $response->assertRedirect(route('requests.index', ['tab' => 'pendientes']));
+    }
+
 }
