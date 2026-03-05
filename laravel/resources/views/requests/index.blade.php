@@ -4,19 +4,6 @@
 @section('page-title', 'Solicitudes')
 @section('breadcrumb', 'Inicio / Solicitudes')
 
-@php
-    $queryWithoutTab = request()->except(['tab', 'page']);
-
-    $trayColorByTab = [
-        'pendientes' => 'primary',
-        'en_revision' => 'warning',
-        'en_gestion' => 'warning',
-        'en_rrhh' => 'warning',
-        'en_contrato' => 'success',
-        'cerradas' => 'success',
-    ];
-@endphp
-
 @section('content')
     @if(session('status'))
         <div class="alert alert-success shadow-sm border-0" role="alert">
@@ -97,21 +84,11 @@
     <section id="solicitudes-panel" class="card border-0 shadow-sm">
         <div class="card-header bg-white">
             <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
-                <div class="d-flex gap-2 flex-wrap">
-                    @foreach ($tabs as $tabKey => $tab)
-                        @php
-                            $tabUrl = route('requests.index', array_merge($queryWithoutTab, ['tab' => $tabKey]));
-                            $color = $trayColorByTab[$tabKey] ?? 'secondary';
-                            $isActive = $activeTab === $tabKey;
-                        @endphp
-                        <a
-                            class="btn btn-sm {{ $isActive ? 'btn-'.$color : 'btn-outline-'.$color }}"
-                            href="{{ $tabUrl }}"
-                        >
-                            {{ $tab['label'] }} ({{ $tabCounts[$tabKey] ?? 0 }})
-                        </a>
-                    @endforeach
-                </div>
+                @include('requests.partials.inbox_tabs', [
+                    'tabs' => $tabs,
+                    'activeTab' => $activeTab,
+                    'tabCounts' => $tabCounts,
+                ])
 
                 @can('create', \App\Models\Request::class)
                     <a href="{{ route('requests.create') }}" class="btn btn-sm btn-primary">+ Nueva solicitud</a>
