@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\RequestStatus;
 use App\Enums\UserRole;
+use App\Models\Employee;
 use App\Models\Request as WorkflowRequest;
 use App\Models\RequestAction;
 use App\Models\User;
@@ -18,20 +19,67 @@ class RequestWorkflowService
     {
         $attributes = Validator::make($payload, [
             'motivo' => ['required', 'string', 'max:255'],
-            'fecha_inicio' => ['required', 'date'],
-            'fecha_fin' => ['required', 'date', 'after_or_equal:fecha_inicio'],
-            'nombre_reemplazo' => ['required', 'string', 'max:255'],
+            'subject_employee_id' => ['required', 'integer', 'exists:employees,id'],
+            'replacement_is_external' => ['required', 'boolean'],
+            'replacement_employee_id' => [
+                'nullable',
+                'integer',
+                'exists:employees,id',
+                'required_if:replacement_is_external,false',
+                'exclude_if:replacement_is_external,true',
+                'different:subject_employee_id',
+            ],
+            'replacement_full_name' => [
+                'nullable',
+                'string',
+                'max:255',
+                'required_if:replacement_is_external,true',
+                'exclude_unless:replacement_is_external,true',
+            ],
+            'replacement_rut' => ['nullable', 'string', 'max:20', 'exclude_unless:replacement_is_external,true'],
+            'replacement_dv' => ['nullable', 'string', 'size:1', 'exclude_unless:replacement_is_external,true'],
+            'replacement_profession' => ['nullable', 'string', 'max:255', 'exclude_unless:replacement_is_external,true'],
+            'replacement_specialty' => ['nullable', 'string', 'max:255', 'exclude_unless:replacement_is_external,true'],
+            'replacement_notes' => ['nullable', 'string', 'max:2000', 'exclude_unless:replacement_is_external,true'],
+            'absence_type_id' => ['nullable', 'integer', 'exists:absence_types,id'],
+            'absence_detail' => ['nullable', 'string', 'max:2000'],
+            'start_date' => ['required', 'date'],
+            'end_date' => ['required', 'date', 'after_or_equal:start_date'],
         ])->validate();
 
-        return DB::transaction(function () use ($actor, $attributes) {
+        $replacementEmployee = null;
+        $replacementName = $attributes['replacement_full_name'] ?? null;
+
+        if (! $attributes['replacement_is_external']) {
+            $replacementEmployee = Employee::query()->findOrFail($attributes['replacement_employee_id']);
+            $replacementName = $replacementEmployee->full_name;
+        }
+
+        return DB::transaction(function () use ($actor, $attributes, $replacementEmployee, $replacementName) {
             $request = WorkflowRequest::query()->create([
                 'service_id' => $actor->service_id,
                 'created_by' => $actor->id,
                 'status' => RequestStatus::BORRADOR,
                 'motivo' => $attributes['motivo'],
-                'fecha_inicio' => $attributes['fecha_inicio'],
-                'fecha_fin' => $attributes['fecha_fin'],
-                'nombre_reemplazo' => $attributes['nombre_reemplazo'],
+                'fecha_inicio' => $attributes['start_date'],
+                'fecha_fin' => $attributes['end_date'],
+                'nombre_reemplazo' => $replacementName,
+            ]);
+
+            $request->staffing()->create([
+                'subject_employee_id' => $attributes['subject_employee_id'],
+                'replacement_employee_id' => $replacementEmployee?->id,
+                'replacement_is_external' => $attributes['replacement_is_external'],
+                'replacement_rut' => $attributes['replacement_rut'] ?? null,
+                'replacement_dv' => $attributes['replacement_dv'] ?? null,
+                'replacement_full_name' => $replacementName,
+                'replacement_profession' => $attributes['replacement_profession'] ?? null,
+                'replacement_specialty' => $attributes['replacement_specialty'] ?? null,
+                'replacement_notes' => $attributes['replacement_notes'] ?? null,
+                'absence_type_id' => $attributes['absence_type_id'] ?? null,
+                'absence_detail' => $attributes['absence_detail'] ?? null,
+                'start_date' => $attributes['start_date'],
+                'end_date' => $attributes['end_date'],
             ]);
 
             $this->logAction(
