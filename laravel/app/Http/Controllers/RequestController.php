@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Enums\RequestStatus;
 use App\Enums\UserRole;
 use App\Http\Requests\StoreRequestRequest;
+use App\Models\AbsenceType;
+use App\Models\Employee;
 use App\Models\Request as WorkflowRequest;
 use App\Models\Service;
 use App\Services\RequestWorkflowService;
@@ -183,7 +185,20 @@ class RequestController extends Controller
     {
         $this->authorize('create', WorkflowRequest::class);
 
-        return view('requests.create');
+        $employees = Employee::query()
+            ->where('is_active', true)
+            ->orderBy('full_name')
+            ->get(['id', 'full_name', 'rut', 'dv', 'unidad', 'profesion']);
+
+        $absenceTypes = AbsenceType::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        return view('requests.create', [
+            'employees' => $employees,
+            'absenceTypes' => $absenceTypes,
+        ]);
     }
 
     public function show(WorkflowRequest $request): View
