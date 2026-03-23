@@ -11,9 +11,11 @@
         <div class="d-flex gap-2 flex-wrap">
             <a href="{{ route('forms.index') }}" class="btn btn-outline-secondary">Catálogo</a>
             <a href="{{ route('forms.submissions.index') }}" class="btn btn-outline-primary">Volver al listado</a>
-            @if ($submission->pdf_path)
-                <a href="{{ route('forms.submissions.pdf', $submission) }}" class="btn btn-success">Descargar PDF</a>
-            @endif
+            @can('downloadPdf', $submission)
+                @if ($submission->pdf_path)
+                    <a href="{{ route('forms.submissions.pdf', $submission) }}" class="btn btn-success">Descargar PDF</a>
+                @endif
+            @endcan
         </div>
     </section>
 
@@ -35,12 +37,7 @@
                         </div>
                         <div class="col-md-6">
                             <small class="text-muted d-block">Estado</small>
-                            <span class="badge {{ match($submission->status?->value) {
-                                'DRAFT' => 'bg-secondary',
-                                'SUBMITTED' => 'bg-primary',
-                                'CANCELLED' => 'bg-danger',
-                                default => 'bg-dark',
-                            } }}">{{ $submission->status?->value ?? 'SIN ESTADO' }}</span>
+                            <span class="badge {{ $submission->status?->badgeClass() ?? 'bg-dark' }}">{{ $submission->status?->label() ?? 'SIN ESTADO' }}</span>
                         </div>
                         <div class="col-md-6">
                             <small class="text-muted d-block">Enviado por</small>
@@ -57,6 +54,26 @@
                     </div>
 
                     @php($payload = $submission->payload_json ?? [])
+
+                    <hr class="my-4">
+
+                    <div class="d-flex flex-wrap gap-2">
+                        @can('update', $submission)
+                            <a href="{{ route('requests.edit', $submission) }}" class="btn btn-outline-secondary">Editar borrador</a>
+                        @endcan
+
+                        @can('submit', $submission)
+                            <button type="button" class="btn btn-primary" data-workflow-action="submit" data-action-url="{{ route('forms.submissions.submit', $submission) }}">Enviar a RRHH</button>
+                        @endcan
+
+                        @can('approve', $submission)
+                            <button type="button" class="btn btn-success" data-workflow-action="approve" data-action-url="{{ route('forms.submissions.approve', $submission) }}">Aprobar RRHH</button>
+                        @endcan
+
+                        @can('reject', $submission)
+                            <button type="button" class="btn btn-outline-danger" data-workflow-action="reject" data-action-url="{{ route('forms.submissions.reject', $submission) }}">Rechazar RRHH</button>
+                        @endcan
+                    </div>
 
                     <hr class="my-4">
 
@@ -128,3 +145,47 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+    <script>
+        (() => {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
+
+            document.querySelectorAll('[data-workflow-action]').forEach((button) => {
+                button.addEventListener('click', async () => {
+                    const action = button.dataset.workflowAction;
+                    const url = button.dataset.actionUrl;
+                    const requiresComment = action === 'approve' || action === 'reject';
+                    const comment = requiresComment ? (window.prompt('Comentario opcional para RRHH:', '') ?? '') : '';
+
+                    button.disabled = true;
+
+                    try {
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken,
+                            },
+                            body: JSON.stringify({ comment }),
+                        });
+
+                        const result = await response.json();
+
+                        if (response.ok && result.ok) {
+                            window.location.reload();
+                            return;
+                        }
+
+                        window.alert(result.message ?? 'No fue posible aplicar la acción.');
+                    } catch (error) {
+                        window.alert('Ocurrió un error de red al aplicar la acción.');
+                    } finally {
+                        button.disabled = false;
+                    }
+                });
+            });
+        })();
+    </script>
+@endpush

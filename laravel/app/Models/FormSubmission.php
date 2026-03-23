@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Enums\FormSubmissionStatus;
+use App\Enums\UserRole;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -43,5 +45,14 @@ class FormSubmission extends Model
     public function actions(): HasMany
     {
         return $this->hasMany(FormSubmissionAction::class);
+    }
+
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if ($user->role === UserRole::ADMIN || in_array($user->role, [UserRole::RRHH, UserRole::GESTION_PERSONAS], true)) {
+            return $query;
+        }
+
+        return $query->where('submitted_by', $user->id);
     }
 }

@@ -14,8 +14,10 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/requests', [RequestController::class, 'index'])->name('requests.index');
     Route::get('/requests/create', [RequestController::class, 'create'])->name('requests.create');
-    Route::get('/requests/{request}', [RequestController::class, 'show'])->name('requests.show');
     Route::post('/requests', [RequestController::class, 'store'])->name('requests.store');
+    Route::get('/requests/{formSubmission}/edit', [RequestController::class, 'edit'])->name('requests.edit');
+    Route::put('/requests/{formSubmission}', [RequestController::class, 'update'])->name('requests.update');
+    Route::get('/requests/{request}', [RequestController::class, 'show'])->name('requests.show');
 
     Route::prefix('/requests/{request}/actions')->name('requests.actions.')->group(function () {
         Route::post('/send', [RequestWorkflowController::class, 'send'])->name('send');

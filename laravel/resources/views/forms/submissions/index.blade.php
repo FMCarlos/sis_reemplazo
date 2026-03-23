@@ -34,13 +34,8 @@
                                 <small class="text-muted">{{ $submission->formType?->code ?? 'Sin código' }}</small>
                             </td>
                             <td>
-                                <span class="badge {{ match($submission->status?->value) {
-                                    'DRAFT' => 'bg-secondary',
-                                    'SUBMITTED' => 'bg-primary',
-                                    'CANCELLED' => 'bg-danger',
-                                    default => 'bg-dark',
-                                } }}">
-                                    {{ $submission->status?->value ?? 'SIN ESTADO' }}
+                                <span class="badge {{ $submission->status?->badgeClass() ?? 'bg-dark' }}">
+                                    {{ $submission->status?->label() ?? 'SIN ESTADO' }}
                                 </span>
                             </td>
                             <td>{{ $submission->submitter?->name ?? 'Usuario no disponible' }}</td>
