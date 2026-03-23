@@ -10,5 +10,6 @@ Route::middleware(['auth'])->prefix('forms')->name('forms.')->group(function () 
     Route::prefix('submissions')->name('submissions.')->group(function () {
         Route::get('/', [FormSubmissionController::class, 'index'])->name('index');
         Route::get('/{formSubmission}', [FormSubmissionController::class, 'show'])->name('show');
+        Route::get('/{formSubmission}/pdf', [FormSubmissionController::class, 'downloadPdf'])->name('pdf');
     });
 });

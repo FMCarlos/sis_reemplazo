@@ -4,22 +4,21 @@ namespace App\Http\Controllers;
 
 use App\Enums\RequestStatus;
 use App\Enums\UserRole;
-use App\Http\Requests\StoreRequestRequest;
 use App\Models\AbsenceType;
 use App\Models\Employee;
 use App\Models\Request as WorkflowRequest;
 use App\Models\Service;
-use App\Services\RequestWorkflowService;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request as HttpRequest;
 use Illuminate\Validation\Rule;
+use App\Modules\Replacement\ReplacementFormHandler;
 
 class RequestController extends Controller
 {
-    public function __construct(private readonly RequestWorkflowService $requestWorkflowService) {}
+    public function __construct(private readonly ReplacementFormHandler $replacementFormHandler) {}
 
     public function index(HttpRequest $request): View|RedirectResponse
     {
@@ -217,19 +216,20 @@ class RequestController extends Controller
         ]);
     }
 
-    public function store(StoreRequestRequest $request): JsonResponse
+    public function store(HttpRequest $request): JsonResponse
     {
         $this->authorize('create', WorkflowRequest::class);
 
-        $user = $request->user();
-        $createdRequest = $this->requestWorkflowService->createDraft($user, $request->validated());
+        $submission = $this->replacementFormHandler->create($request->user(), $request->all());
 
         return response()->json([
             'ok' => true,
-            'message' => 'Solicitud creada en borrador.',
+            'message' => 'Formulario de reemplazo enviado y PDF generado correctamente.',
             'data' => [
-                'id' => $createdRequest->id,
-                'status' => $createdRequest->status->value,
+                'id' => $submission->id,
+                'status' => $submission->status->value,
+                'pdf_path' => $submission->pdf_path,
+                'show_url' => route('forms.submissions.show', $submission),
             ],
         ], 201);
     }

@@ -2,23 +2,28 @@
 
 namespace Tests\Feature;
 
-use App\Enums\RequestStatus;
+use App\Enums\FormSubmissionStatus;
 use App\Enums\UserRole;
 use App\Models\AbsenceType;
 use App\Models\Employee;
-use App\Models\Request as WorkflowRequest;
+use App\Models\FormSubmission;
+use App\Models\FormType;
 use App\Models\Service;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class CreateRequestTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_jefe_servicio_can_create_a_draft_request_with_internal_replacement_via_json(): void
+    public function test_jefe_servicio_can_create_a_replacement_form_submission_with_internal_replacement_via_json(): void
     {
+        Storage::fake('local');
+
         $service = Service::query()->create(['name' => 'Cirugía']);
+        $formType = $this->createReplacementFormType();
         $absenceType = AbsenceType::query()->create(['name' => 'Licencia médica', 'is_active' => true]);
         $subjectEmployee = $this->createEmployee('Funcionario A');
         $replacementEmployee = $this->createEmployee('Funcionario B');
@@ -42,51 +47,51 @@ class CreateRequestTest extends TestCase
         $response
             ->assertCreated()
             ->assertJsonPath('ok', true)
-            ->assertJsonPath('message', 'Solicitud creada en borrador.')
-            ->assertJsonPath('data.status', RequestStatus::BORRADOR->value)
+            ->assertJsonPath('message', 'Formulario de reemplazo enviado y PDF generado correctamente.')
+            ->assertJsonPath('data.status', FormSubmissionStatus::SUBMITTED->value)
             ->assertJsonStructure([
                 'ok',
                 'message',
-                'data' => ['id', 'status'],
+                'data' => ['id', 'status', 'pdf_path', 'show_url'],
             ]);
 
-        $this->assertDatabaseHas('requests', [
-            'service_id' => $service->id,
-            'created_by' => $jefe->id,
-            'status' => RequestStatus::BORRADOR->value,
-            'motivo' => 'Licencia médica',
-            'fecha_inicio' => '2026-03-01',
-            'fecha_fin' => '2026-03-15',
-            'nombre_reemplazo' => 'Funcionario B',
+        $submission = FormSubmission::query()->firstOrFail();
+
+        $this->assertDatabaseHas('form_submissions', [
+            'id' => $submission->id,
+            'form_type_id' => $formType->id,
+            'submitted_by' => $jefe->id,
+            'status' => FormSubmissionStatus::SUBMITTED->value,
         ]);
 
-        $createdRequest = WorkflowRequest::query()->where('created_by', $jefe->id)->firstOrFail();
+        $this->assertSame('Licencia médica', data_get($submission->payload_json, 'motivo'));
+        $this->assertSame('Funcionario A', data_get($submission->payload_json, 'subject_employee.full_name'));
+        $this->assertSame('Funcionario B', data_get($submission->payload_json, 'replacement.full_name'));
+        $this->assertSame('Licencia médica', data_get($submission->payload_json, 'absence.type_name'));
+        $this->assertSame('2026-03-01', data_get($submission->payload_json, 'period.start_date'));
+        $this->assertSame('2026-03-15', data_get($submission->payload_json, 'period.end_date'));
+        $this->assertNotNull($submission->pdf_path);
+        Storage::disk('local')->assertExists($submission->pdf_path);
 
-        $this->assertDatabaseHas('request_staffing', [
-            'request_id' => $createdRequest->id,
-            'subject_employee_id' => $subjectEmployee->id,
-            'replacement_is_external' => false,
-            'replacement_employee_id' => $replacementEmployee->id,
-            'replacement_full_name' => 'Funcionario B',
-            'absence_type_id' => $absenceType->id,
-            'absence_detail' => 'Reposo postoperatorio',
-            'start_date' => '2026-03-01',
-            'end_date' => '2026-03-15',
-        ]);
-
-        $this->assertDatabaseHas('request_actions', [
-            'request_id' => $createdRequest->id,
+        $this->assertDatabaseHas('form_submission_actions', [
+            'form_submission_id' => $submission->id,
             'user_id' => $jefe->id,
-            'action' => 'create_draft',
-            'from_status' => RequestStatus::BORRADOR->value,
-            'to_status' => RequestStatus::BORRADOR->value,
-            'comment' => null,
+            'action' => 'created',
+        ]);
+
+        $this->assertDatabaseHas('form_submission_actions', [
+            'form_submission_id' => $submission->id,
+            'user_id' => $jefe->id,
+            'action' => 'pdf_generated',
         ]);
     }
 
-    public function test_jefe_servicio_can_create_a_draft_request_with_external_replacement_via_json(): void
+    public function test_jefe_servicio_can_create_a_replacement_form_submission_with_external_replacement_via_json(): void
     {
+        Storage::fake('local');
+
         $service = Service::query()->create(['name' => 'Cirugía']);
+        $this->createReplacementFormType();
         $subjectEmployee = $this->createEmployee('Funcionario A');
 
         $jefe = User::factory()->create([
@@ -110,33 +115,23 @@ class CreateRequestTest extends TestCase
 
         $response->assertCreated();
 
-        $createdRequest = WorkflowRequest::query()->where('created_by', $jefe->id)->firstOrFail();
+        $submission = FormSubmission::query()->firstOrFail();
 
-        $this->assertDatabaseHas('requests', [
-            'id' => $createdRequest->id,
-            'motivo' => 'Permiso administrativo',
-            'fecha_inicio' => '2026-04-01',
-            'fecha_fin' => '2026-04-10',
-            'nombre_reemplazo' => 'Médico Externo',
-        ]);
-
-        $this->assertDatabaseHas('request_staffing', [
-            'request_id' => $createdRequest->id,
-            'subject_employee_id' => $subjectEmployee->id,
-            'replacement_is_external' => true,
-            'replacement_employee_id' => null,
-            'replacement_full_name' => 'Médico Externo',
-            'replacement_rut' => '12345678',
-            'replacement_dv' => '9',
-            'replacement_profession' => 'Médico',
-            'replacement_specialty' => 'Cirugía',
-            'replacement_notes' => 'Ingreso por contingencia',
-        ]);
+        $this->assertSame('Permiso administrativo', data_get($submission->payload_json, 'motivo'));
+        $this->assertSame('Médico Externo', data_get($submission->payload_json, 'replacement.full_name'));
+        $this->assertTrue((bool) data_get($submission->payload_json, 'replacement.is_external'));
+        $this->assertSame('12345678', data_get($submission->payload_json, 'replacement.rut'));
+        $this->assertSame('9', data_get($submission->payload_json, 'replacement.dv'));
+        $this->assertSame('Médico', data_get($submission->payload_json, 'replacement.profession'));
+        $this->assertSame('Cirugía', data_get($submission->payload_json, 'replacement.specialty'));
+        $this->assertSame('Ingreso por contingencia', data_get($submission->payload_json, 'replacement.notes'));
+        Storage::disk('local')->assertExists($submission->pdf_path);
     }
 
     public function test_store_fails_if_internal_replacement_is_missing_replacement_employee_id(): void
     {
         $service = Service::query()->create(['name' => 'Cirugía']);
+        $this->createReplacementFormType();
         $subjectEmployee = $this->createEmployee('Funcionario A');
 
         $jefe = User::factory()->create([
@@ -160,6 +155,7 @@ class CreateRequestTest extends TestCase
     public function test_store_fails_if_internal_replacement_is_same_as_subject_employee(): void
     {
         $service = Service::query()->create(['name' => 'Cirugía']);
+        $this->createReplacementFormType();
         $subjectEmployee = $this->createEmployee('Funcionario A');
 
         $jefe = User::factory()->create([
@@ -184,6 +180,7 @@ class CreateRequestTest extends TestCase
     public function test_store_fails_if_end_date_is_before_start_date(): void
     {
         $service = Service::query()->create(['name' => 'Cirugía']);
+        $this->createReplacementFormType();
         $subjectEmployee = $this->createEmployee('Funcionario A');
         $replacementEmployee = $this->createEmployee('Funcionario B');
 
@@ -204,6 +201,30 @@ class CreateRequestTest extends TestCase
         $response
             ->assertStatus(422)
             ->assertJsonValidationErrors(['end_date']);
+    }
+
+    public function test_store_fails_if_replacement_form_type_is_not_available(): void
+    {
+        $service = Service::query()->create(['name' => 'Cirugía']);
+        $subjectEmployee = $this->createEmployee('Funcionario A');
+        $replacementEmployee = $this->createEmployee('Funcionario B');
+
+        $jefe = User::factory()->create([
+            'role' => UserRole::JEFE_SERVICIO,
+            'service_id' => $service->id,
+        ]);
+
+        $this->actingAs($jefe)
+            ->withExceptionHandling()
+            ->postJson(route('requests.store'), [
+                'motivo' => 'Licencia médica',
+                'subject_employee_id' => $subjectEmployee->id,
+                'replacement_is_external' => false,
+                'replacement_employee_id' => $replacementEmployee->id,
+                'start_date' => '2026-03-01',
+                'end_date' => '2026-03-05',
+            ])
+            ->assertStatus(500);
     }
 
     public function test_rrhh_cannot_access_create_form_or_store(): void
@@ -239,6 +260,16 @@ class CreateRequestTest extends TestCase
                 'motivo' => 'X',
             ])
             ->assertForbidden();
+    }
+
+    private function createReplacementFormType(): FormType
+    {
+        return FormType::query()->create([
+            'code' => 'replacement_request',
+            'name' => 'Solicitud de reemplazo',
+            'description' => 'Formulario institucional para solicitudes de reemplazo.',
+            'active' => true,
+        ]);
     }
 
     private function createEmployee(string $fullName): Employee

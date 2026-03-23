@@ -6,11 +6,14 @@
     <section class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
         <div>
             <h1 class="h3 mb-1">Envío #{{ $submission->id }}</h1>
-            <p class="text-muted mb-0">Detalle base del registro enviado para la nueva plataforma institucional de formularios.</p>
+            <p class="text-muted mb-0">Detalle del primer formulario modular de reemplazo operando sobre el nuevo núcleo institucional.</p>
         </div>
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 flex-wrap">
             <a href="{{ route('forms.index') }}" class="btn btn-outline-secondary">Catálogo</a>
             <a href="{{ route('forms.submissions.index') }}" class="btn btn-outline-primary">Volver al listado</a>
+            @if ($submission->pdf_path)
+                <a href="{{ route('forms.submissions.pdf', $submission) }}" class="btn btn-success">Descargar PDF</a>
+            @endif
         </div>
     </section>
 
@@ -50,6 +53,41 @@
                         <div class="col-md-6">
                             <small class="text-muted d-block">PDF asociado</small>
                             <span>{{ $submission->pdf_path ?: 'No generado aún' }}</span>
+                        </div>
+                    </div>
+
+                    @php($payload = $submission->payload_json ?? [])
+
+                    <hr class="my-4">
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">Funcionario titular</small>
+                            <span>{{ data_get($payload, 'subject_employee.full_name', 'No informado') }}</span>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">Reemplazante</small>
+                            <span>{{ data_get($payload, 'replacement.full_name', 'No informado') }}</span>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">Origen reemplazante</small>
+                            <span>{{ data_get($payload, 'replacement.is_external') ? 'Externo' : 'Interno' }}</span>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">Tipo de ausencia</small>
+                            <span>{{ data_get($payload, 'absence.type_name', 'No informado') }}</span>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">Fecha inicio</small>
+                            <span>{{ data_get($payload, 'period.start_date', 'No informada') }}</span>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">Fecha fin</small>
+                            <span>{{ data_get($payload, 'period.end_date', 'No informada') }}</span>
+                        </div>
+                        <div class="col-12">
+                            <small class="text-muted d-block">Motivo</small>
+                            <span>{{ data_get($payload, 'motivo', 'Sin motivo') }}</span>
                         </div>
                     </div>
                 </div>
