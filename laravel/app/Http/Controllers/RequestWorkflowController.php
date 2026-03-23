@@ -16,15 +16,6 @@ class RequestWorkflowController extends Controller
         return $this->perform($request, fn () => $workflowService->send($httpRequest->user(), $request));
     }
 
-    public function take(Request $httpRequest, WorkflowRequest $request, RequestWorkflowService $workflowService): JsonResponse
-    {
-        return $this->perform($request, fn () => $workflowService->take($httpRequest->user(), $request));
-    }
-
-    public function sendToRrhh(Request $httpRequest, WorkflowRequest $request, RequestWorkflowService $workflowService): JsonResponse
-    {
-        return $this->perform($request, fn () => $workflowService->send_to_rrhh($httpRequest->user(), $request));
-    }
 
     public function observe(Request $httpRequest, WorkflowRequest $request, RequestWorkflowService $workflowService): JsonResponse
     {
@@ -47,11 +38,6 @@ class RequestWorkflowController extends Controller
     public function approveRrhh(Request $httpRequest, WorkflowRequest $request, RequestWorkflowService $workflowService): JsonResponse
     {
         return $this->perform($request, fn () => $workflowService->approve_rrhh($httpRequest->user(), $request));
-    }
-
-    public function markContractDone(Request $httpRequest, WorkflowRequest $request, RequestWorkflowService $workflowService): JsonResponse
-    {
-        return $this->perform($request, fn () => $workflowService->mark_contract_done($httpRequest->user(), $request));
     }
 
     private function perform(WorkflowRequest $request, callable $callback): JsonResponse
@@ -81,10 +67,7 @@ class RequestWorkflowController extends Controller
                 'status' => $updatedRequest->status->value,
                 'can' => [
                     'send' => Gate::forUser($user)->allows('send', $updatedRequest),
-                    'take' => Gate::forUser($user)->allows('take', $updatedRequest),
-                    'send_to_rrhh' => Gate::forUser($user)->allows('sendToRrhh', $updatedRequest),
                     'approve_rrhh' => Gate::forUser($user)->allows('approveRrhh', $updatedRequest),
-                    'mark_contract_done' => Gate::forUser($user)->allows('markContractDone', $updatedRequest),
                     'observe' => Gate::forUser($user)->allows('observe', $updatedRequest),
                     'reject' => Gate::forUser($user)->allows('reject', $updatedRequest),
                 ],

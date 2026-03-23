@@ -21,12 +21,9 @@ Route::middleware(['auth'])->group(function () {
 
     Route::prefix('/requests/{request}/actions')->name('requests.actions.')->group(function () {
         Route::post('/send', [RequestWorkflowController::class, 'send'])->name('send');
-        Route::post('/take', [RequestWorkflowController::class, 'take'])->name('take');
-        Route::post('/send-to-rrhh', [RequestWorkflowController::class, 'sendToRrhh'])->name('send_to_rrhh');
         Route::post('/observe', [RequestWorkflowController::class, 'observe'])->name('observe');
         Route::post('/reject', [RequestWorkflowController::class, 'reject'])->name('reject');
         Route::post('/approve-rrhh', [RequestWorkflowController::class, 'approveRrhh'])->name('approve_rrhh');
-        Route::post('/mark-contract-done', [RequestWorkflowController::class, 'markContractDone'])->name('mark_contract_done');
     });
 
     Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {

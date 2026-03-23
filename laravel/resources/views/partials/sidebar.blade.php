@@ -39,15 +39,6 @@
             </a>
         @endif
 
-        @if ($role === UserRole::GESTION_PERSONAS)
-            <a
-                class="nav-link {{ Route::is('requests.index') && request('estado') === 'EN_GESTION_PERSONAS' ? 'active' : '' }}"
-                href="{{ route('requests.index', ['estado' => 'EN_GESTION_PERSONAS']) }}"
-            >
-                Bandeja GP
-            </a>
-        @endif
-
         @if ($role === UserRole::RRHH)
             <a
                 class="nav-link {{ Route::is('requests.index') && request('estado') === 'EN_RRHH' ? 'active' : '' }}"
