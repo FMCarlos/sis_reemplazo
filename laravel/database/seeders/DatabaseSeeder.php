@@ -21,7 +21,9 @@ class DatabaseSeeder extends Seeder
             EstamentSeeder::class,
             LegalQualitySeeder::class,
             ProfessionSeeder::class,
-            SpecialtySeeder::class, 
+            SpecialtySeeder::class,
+            RoleUsersSeeder::class,
+            RequestSeeder::class, 
         ]);
     }
 }

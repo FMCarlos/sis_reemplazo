@@ -1,1 +1,168 @@
-Internal hospital web system to manage staff replacement requests. This is NOT a legal resolution system. It is an administrative workflow used before contract generation. Primary goals: Register replacement requests Allow internal review workflow Enable observations and corrections Manage contract processing stage Maintain full audit trail 👥 User Roles JEFE_SERVICIO Creates requests Edits only when status is BORRADOR or OBSERVADA Sees only requests from their own service GESTION_PERSONAS Completes internal administrative data Reviews requests before RRHH Handles contract processing Can observe and return request RRHH Final administrative validation Approve / Observe / Reject 🔄 Workflow States BORRADOR ENVIADA EN_GESTION_PERSONAS EN_RRHH OBSERVADA RECHAZADA EN_TRAMITACION_CONTRATO FINALIZADA 🔁 Workflow Logic JEFE_SERVICIO creates request BORRADOR → ENVIADA GESTION_PERSONAS review EN_GESTION_PERSONAS Actions: complete internal fields observe → returns to JEFE_SERVICIO RRHH review EN_RRHH Actions: approve → back to GESTION_PERSONAS observe → back to GESTION_PERSONAS reject → end process GESTION_PERSONAS processes contract EN_TRAMITACION_CONTRATO FINALIZADA 📌 Business Rules Fields created by JEFE_SERVICIO are read-only for other roles. Observations always return first to GESTION_PERSONAS. Requests are overwritten after corrections (no versioning), but full audit log is required. RRHH and GESTION_PERSONAS see all requests. JEFE_SERVICIO sees only their service requests. 🧱 Technology Stack Laravel 11 Blade Templates Bootstrap 5 Alpine.js Fetch/AJAX (no full page reload) MySQL Docker (Nginx + PHP-FPM) Linux Server SPA frameworks are NOT used. ⚡ Frontend Behavior System must behave like an administrative dashboard: Sidebar layout Topbar Grey background White cards Data tables Row actions Interactions: AJAX actions (approve, observe, send, etc.) Bootstrap modals for observe/reject Toast notifications for feedback No full page reloads 📊 UI Layout Structure Sidebar (left) Topbar (top) Main Content └── Card └── Table 🔧 Expected Backend Endpoints POST /requests/{id}/actions/send POST /requests/{id}/actions/observe POST /requests/{id}/actions/reject POST /requests/{id}/actions/approve-rrhh POST /requests/{id}/actions/mark-contract-done All endpoints must return JSON responses. 📂 Core Models (Conceptual) User Service Request RequestAction (audit log) Attachment 🐳 Infrastructure Docker mandatory Nginx + PHP-FPM container MySQL container Repository hosted on GitHub Designed to work with AI coding agents (Codex) 🎯 Initial Development Goal Create base project with: Docker environment Laravel scaffold Auth Sidebar layout Requests table (Home view) First AJAX action example 🚀 Short Prompt for Coding Agents Build a Laravel 11 administrative system for hospital replacement requests. Use Blade + Bootstrap + Alpine.js. Implement sidebar layout, AJAX workflow actions, and role-based workflow. Docker environment required.
+# PROJECT_SPEC.md
+
+## Nombre del Proyecto
+
+Plataforma de Formularios Institucionales
+
+---
+
+## Descripción General
+
+Sistema web interno orientado a la digitalización de procesos administrativos del hospital, permitiendo la creación, gestión y almacenamiento de formularios institucionales con generación automática de documentos PDF.
+
+---
+
+## Objetivo General
+
+Centralizar y optimizar la gestión de formularios institucionales mediante una plataforma modular, escalable y mantenible.
+
+---
+
+## Objetivos Específicos
+
+- Eliminar procesos manuales en papel
+- Generar documentos PDF automáticamente
+- Mantener trazabilidad de solicitudes
+- Permitir consulta y seguimiento
+- Facilitar incorporación de nuevos formularios
+
+---
+
+## Alcance Inicial
+
+El sistema debe permitir:
+
+1. Autenticación de usuarios
+2. Selección de tipo de formulario
+3. Completar formulario
+4. Validación de datos
+5. Generación de PDF
+6. Almacenamiento de solicitud
+7. Consulta de solicitudes
+8. Descarga de documentos
+
+---
+
+## Tipos de Formularios Iniciales
+
+- Solicitud de reemplazo (primer módulo)
+- Horas extraordinarias (futuro)
+- Notificación de eventos (futuro)
+
+---
+
+## Arquitectura Funcional
+
+### 1. Form Types
+Define los tipos de formularios disponibles.
+
+Campos:
+- code
+- name
+- description
+- active
+
+---
+
+### 2. Form Submissions
+Representa cada envío realizado.
+
+Campos:
+- form_type_id
+- submitted_by
+- status
+- payload_json
+- pdf_path
+- submitted_at
+
+---
+
+### 3. Form Submission Actions
+Registro de eventos del sistema.
+
+Eventos:
+- created
+- updated
+- pdf_generated
+- downloaded
+- cancelled
+
+---
+
+## Flujo del Sistema
+
+1. Usuario ingresa
+2. Selecciona formulario
+3. Completa datos
+4. Sistema valida
+5. Sistema guarda
+6. Sistema genera PDF
+7. Usuario puede descargar o consultar
+
+---
+
+## Estados del Sistema
+
+Estados simples:
+
+- DRAFT
+- SUBMITTED
+- CANCELLED
+
+---
+
+## Requisitos No Funcionales
+
+- Sistema web interno
+- Acceso por red local
+- Soporte múltiples usuarios concurrentes
+- Seguridad por roles
+- Persistencia de datos
+- Generación de PDF confiable
+
+---
+
+## Consideraciones Técnicas
+
+- Uso de Laravel como backend
+- MySQL como base de datos
+- Docker para despliegue
+- Separación de capas (Controller, Service, Domain)
+- Generación de PDF desacoplada
+
+---
+
+## Estrategia de Desarrollo
+
+1. Definir núcleo (form_types + form_submissions)
+2. Implementar primer formulario (reemplazo)
+3. Generar PDF base
+4. Implementar listados
+5. Habilitar extensibilidad
+6. Agregar nuevos formularios
+
+---
+
+## Fuera de Alcance Inicial
+
+- Flujos complejos de aprobación
+- Firma electrónica integrada
+- Integraciones externas complejas
+- Motor 100% dinámico de formularios
+
+---
+
+## Éxito del Proyecto
+
+El sistema será exitoso si:
+
+- Permite generar formularios y PDFs correctamente
+- Es fácil agregar nuevos formularios
+- Reduce procesos manuales
+- Es utilizado por las unidades del hospital
+
+---
+
+## Visión
+
+Convertirse en la plataforma base de gestión de procesos administrativos del hospital.

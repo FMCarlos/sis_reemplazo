@@ -10,12 +10,17 @@ class LegalQualitySeeder extends Seeder
     public function run(): void
     {
         $legalQualities = [
+            'Comision de Servicio',
             'Contrata',
-            'Planta',
+            'Honorario por hora',
             'Honorarios',
-            'Reemplazo',
+            'Planta',
+            'Reemplazo Brecha',
+            'Reemplazo cargo vacante',
+            'Reemplazo transitorio',
             'Suplencia',
-            'Titular'
+            'Supernumerario',
+            'Titular',
         ];
 
         foreach ($legalQualities as $name) {
