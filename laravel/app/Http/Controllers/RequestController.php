@@ -6,6 +6,7 @@ use App\Enums\RequestStatus;
 use App\Enums\UserRole;
 use App\Models\AbsenceType;
 use App\Models\Employee;
+use App\Models\FormSubmission;
 use App\Models\Request as WorkflowRequest;
 use App\Models\Service;
 use Illuminate\Contracts\View\View;
@@ -184,20 +185,14 @@ class RequestController extends Controller
     {
         $this->authorize('create', WorkflowRequest::class);
 
-        $employees = Employee::query()
-            ->where('is_active', true)
-            ->orderBy('full_name')
-            ->get(['id', 'full_name', 'rut', 'dv', 'unidad', 'profesion']);
+        return $this->renderReplacementForm($request);
+    }
 
-        $absenceTypes = AbsenceType::query()
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get(['id', 'name']);
+    public function edit(FormSubmission $formSubmission, HttpRequest $request): View
+    {
+        $this->authorize('update', $formSubmission);
 
-        return view('requests.create', [
-            'employees' => $employees,
-            'absenceTypes' => $absenceTypes,
-        ]);
+        return $this->renderReplacementForm($request, $formSubmission);
     }
 
     public function show(WorkflowRequest $request): View
@@ -220,17 +215,55 @@ class RequestController extends Controller
     {
         $this->authorize('create', WorkflowRequest::class);
 
-        $submission = $this->replacementFormHandler->create($request->user(), $request->all());
+        $submission = $this->replacementFormHandler->createDraft($request->user(), $request->all());
 
         return response()->json([
             'ok' => true,
-            'message' => 'Formulario de reemplazo enviado y PDF generado correctamente.',
+            'message' => 'Formulario de reemplazo guardado en borrador.',
             'data' => [
                 'id' => $submission->id,
                 'status' => $submission->status->value,
-                'pdf_path' => $submission->pdf_path,
                 'show_url' => route('forms.submissions.show', $submission),
+                'edit_url' => route('requests.edit', $submission),
             ],
         ], 201);
+    }
+
+    public function update(FormSubmission $formSubmission, HttpRequest $request): JsonResponse
+    {
+        $this->authorize('update', $formSubmission);
+
+        $submission = $this->replacementFormHandler->updateDraft($formSubmission, $request->user(), $request->all());
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Borrador actualizado correctamente.',
+            'data' => [
+                'id' => $submission->id,
+                'status' => $submission->status->value,
+                'show_url' => route('forms.submissions.show', $submission),
+                'edit_url' => route('requests.edit', $submission),
+            ],
+        ]);
+    }
+
+    private function renderReplacementForm(HttpRequest $request, ?FormSubmission $submission = null): View
+    {
+        $employees = Employee::query()
+            ->where('is_active', true)
+            ->orderBy('full_name')
+            ->get(['id', 'full_name', 'rut', 'dv', 'unidad', 'profesion']);
+
+        $absenceTypes = AbsenceType::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        return view('requests.create', [
+            'employees' => $employees,
+            'absenceTypes' => $absenceTypes,
+            'submission' => $submission,
+            'payload' => $submission?->payload_json ?? [],
+        ]);
     }
 }

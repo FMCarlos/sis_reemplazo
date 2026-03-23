@@ -18,47 +18,142 @@ class ReplacementFormHandler
         private readonly ReplacementPdfGenerator $pdfGenerator,
     ) {}
 
-    public function create(User $actor, array $payload): FormSubmission
+    public function createDraft(User $actor, array $payload): FormSubmission
     {
         $attributes = $this->validator->validate($payload);
+        $formType = $this->resolveFormType();
+
+        return DB::transaction(function () use ($actor, $attributes, $formType) {
+            $submission = FormSubmission::query()->create([
+                'form_type_id' => $formType->id,
+                'submitted_by' => $actor->id,
+                'status' => FormSubmissionStatus::DRAFT,
+                'payload_json' => $this->buildPayload($actor, $attributes),
+            ]);
+
+            $this->logAction($submission, $actor, 'draft_created', [
+                'message' => 'Formulario de reemplazo guardado en borrador.',
+                'status' => FormSubmissionStatus::DRAFT->value,
+            ]);
+
+            return $submission->refresh(['formType', 'submitter', 'actions']);
+        });
+    }
+
+    public function updateDraft(FormSubmission $submission, User $actor, array $payload): FormSubmission
+    {
+        if ($submission->status !== FormSubmissionStatus::DRAFT) {
+            throw new RuntimeException('Solo los borradores pueden editarse.');
+        }
+
+        $attributes = $this->validator->validate($payload);
+
+        return DB::transaction(function () use ($submission, $actor, $attributes) {
+            $submission->forceFill([
+                'payload_json' => $this->buildPayload($actor, $attributes),
+            ])->save();
+
+            $this->logAction($submission, $actor, 'draft_updated', [
+                'message' => 'Borrador actualizado por la jefatura solicitante.',
+                'status' => FormSubmissionStatus::DRAFT->value,
+            ]);
+
+            return $submission->refresh(['formType', 'submitter', 'actions']);
+        });
+    }
+
+    public function submit(FormSubmission $submission, User $actor): FormSubmission
+    {
+        if ($submission->status !== FormSubmissionStatus::DRAFT) {
+            throw new RuntimeException('Solo los borradores pueden enviarse a RRHH.');
+        }
+
+        return DB::transaction(function () use ($submission, $actor) {
+            $submission->forceFill([
+                'status' => FormSubmissionStatus::SUBMITTED,
+                'submitted_at' => now(),
+            ])->save();
+
+            $this->logAction($submission, $actor, 'submitted', [
+                'from_status' => FormSubmissionStatus::DRAFT->value,
+                'to_status' => FormSubmissionStatus::SUBMITTED->value,
+                'message' => 'Solicitud enviada por la jefatura para revisión de RRHH.',
+            ]);
+
+            return $submission->refresh(['formType', 'submitter', 'actions']);
+        });
+    }
+
+    public function approve(FormSubmission $submission, User $actor, ?string $comment = null): FormSubmission
+    {
+        if ($submission->status !== FormSubmissionStatus::SUBMITTED) {
+            throw new RuntimeException('Solo las solicitudes enviadas pueden aprobarse.');
+        }
+
+        return DB::transaction(function () use ($submission, $actor, $comment) {
+            $pdfPath = $this->pdfGenerator->generate($submission);
+
+            $submission->forceFill([
+                'status' => FormSubmissionStatus::APPROVED,
+                'pdf_path' => $pdfPath,
+            ])->save();
+
+            $this->logAction($submission, $actor, 'approved', [
+                'from_status' => FormSubmissionStatus::SUBMITTED->value,
+                'to_status' => FormSubmissionStatus::APPROVED->value,
+                'comment' => $comment,
+                'message' => 'Solicitud aprobada por RRHH.',
+            ]);
+
+            $this->logAction($submission, $actor, 'pdf_generated', [
+                'pdf_path' => $pdfPath,
+                'generated_on_status' => FormSubmissionStatus::APPROVED->value,
+            ]);
+
+            return $submission->refresh(['formType', 'submitter', 'actions']);
+        });
+    }
+
+    public function reject(FormSubmission $submission, User $actor, ?string $comment = null): FormSubmission
+    {
+        if ($submission->status !== FormSubmissionStatus::SUBMITTED) {
+            throw new RuntimeException('Solo las solicitudes enviadas pueden rechazarse.');
+        }
+
+        return DB::transaction(function () use ($submission, $actor, $comment) {
+            $submission->forceFill([
+                'status' => FormSubmissionStatus::REJECTED,
+            ])->save();
+
+            $this->logAction($submission, $actor, 'rejected', [
+                'from_status' => FormSubmissionStatus::SUBMITTED->value,
+                'to_status' => FormSubmissionStatus::REJECTED->value,
+                'comment' => $comment,
+                'message' => 'Solicitud rechazada por RRHH.',
+            ]);
+
+            return $submission->refresh(['formType', 'submitter', 'actions']);
+        });
+    }
+
+    private function resolveFormType(): FormType
+    {
         $formType = FormType::query()->where('code', 'replacement_request')->where('active', true)->first();
 
         if (! $formType) {
             throw new RuntimeException('El tipo de formulario de reemplazo no está disponible.');
         }
 
-        return DB::transaction(function () use ($actor, $attributes, $formType) {
-            $normalizedPayload = $this->buildPayload($actor, $attributes);
+        return $formType;
+    }
 
-            $submission = FormSubmission::query()->create([
-                'form_type_id' => $formType->id,
-                'submitted_by' => $actor->id,
-                'status' => FormSubmissionStatus::SUBMITTED,
-                'payload_json' => $normalizedPayload,
-                'submitted_at' => now(),
-            ]);
-
-            $submission->actions()->create([
-                'user_id' => $actor->id,
-                'action' => 'created',
-                'payload_json' => [
-                    'message' => 'Formulario de reemplazo creado en flujo simple.',
-                ],
-            ]);
-
-            $pdfPath = $this->pdfGenerator->generate($submission);
-            $submission->forceFill(['pdf_path' => $pdfPath])->save();
-
-            $submission->actions()->create([
-                'user_id' => $actor->id,
-                'action' => 'pdf_generated',
-                'payload_json' => [
-                    'pdf_path' => $pdfPath,
-                ],
-            ]);
-
-            return $submission->refresh(['formType', 'submitter', 'actions']);
-        });
+    private function logAction(FormSubmission $submission, User $actor, string $action, array $payload = []): void
+    {
+        $submission->actions()->create([
+            'user_id' => $actor->id,
+            'action' => $action,
+            'payload_json' => $payload,
+        ]);
     }
 
     private function buildPayload(User $actor, array $attributes): array

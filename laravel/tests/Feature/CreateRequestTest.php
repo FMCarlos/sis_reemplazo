@@ -47,12 +47,12 @@ class CreateRequestTest extends TestCase
         $response
             ->assertCreated()
             ->assertJsonPath('ok', true)
-            ->assertJsonPath('message', 'Formulario de reemplazo enviado y PDF generado correctamente.')
-            ->assertJsonPath('data.status', FormSubmissionStatus::SUBMITTED->value)
+            ->assertJsonPath('message', 'Formulario de reemplazo guardado en borrador.')
+            ->assertJsonPath('data.status', FormSubmissionStatus::DRAFT->value)
             ->assertJsonStructure([
                 'ok',
                 'message',
-                'data' => ['id', 'status', 'pdf_path', 'show_url'],
+                'data' => ['id', 'status', 'show_url', 'edit_url'],
             ]);
 
         $submission = FormSubmission::query()->firstOrFail();
@@ -61,7 +61,7 @@ class CreateRequestTest extends TestCase
             'id' => $submission->id,
             'form_type_id' => $formType->id,
             'submitted_by' => $jefe->id,
-            'status' => FormSubmissionStatus::SUBMITTED->value,
+            'status' => FormSubmissionStatus::DRAFT->value,
         ]);
 
         $this->assertSame('Licencia médica', data_get($submission->payload_json, 'motivo'));
@@ -70,20 +70,14 @@ class CreateRequestTest extends TestCase
         $this->assertSame('Licencia médica', data_get($submission->payload_json, 'absence.type_name'));
         $this->assertSame('2026-03-01', data_get($submission->payload_json, 'period.start_date'));
         $this->assertSame('2026-03-15', data_get($submission->payload_json, 'period.end_date'));
-        $this->assertNotNull($submission->pdf_path);
-        Storage::disk('local')->assertExists($submission->pdf_path);
+        $this->assertNull($submission->pdf_path);
 
         $this->assertDatabaseHas('form_submission_actions', [
             'form_submission_id' => $submission->id,
             'user_id' => $jefe->id,
-            'action' => 'created',
+            'action' => 'draft_created',
         ]);
 
-        $this->assertDatabaseHas('form_submission_actions', [
-            'form_submission_id' => $submission->id,
-            'user_id' => $jefe->id,
-            'action' => 'pdf_generated',
-        ]);
     }
 
     public function test_jefe_servicio_can_create_a_replacement_form_submission_with_external_replacement_via_json(): void
@@ -125,7 +119,7 @@ class CreateRequestTest extends TestCase
         $this->assertSame('Médico', data_get($submission->payload_json, 'replacement.profession'));
         $this->assertSame('Cirugía', data_get($submission->payload_json, 'replacement.specialty'));
         $this->assertSame('Ingreso por contingencia', data_get($submission->payload_json, 'replacement.notes'));
-        Storage::disk('local')->assertExists($submission->pdf_path);
+        $this->assertNull($submission->pdf_path);
     }
 
     public function test_store_fails_if_internal_replacement_is_missing_replacement_employee_id(): void

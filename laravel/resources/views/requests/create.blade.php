@@ -1,18 +1,21 @@
 @extends('layouts.admin')
 
-@section('title', 'Nuevo formulario de reemplazo')
+@section('title', isset($submission) ? 'Editar borrador de reemplazo' : 'Nuevo formulario de reemplazo')
 @section('page-title', 'Nuevo formulario de reemplazo')
 @section('breadcrumb', 'Inicio / Solicitudes / Nueva')
 
 @section('content')
     <section class="card border-0 shadow-sm">
         <div class="card-body">
-            <h1 class="h4 mb-2">Crear formulario de reemplazo</h1>
-            <p class="text-muted">Flujo simple: crear, guardar, generar PDF y consultar el envío.</p>
+            <h1 class="h4 mb-2">{{ isset($submission) ? 'Editar borrador de reemplazo' : 'Crear formulario de reemplazo' }}</h1>
+            <p class="text-muted">Flujo simple: guardar en borrador, enviar a RRHH, resolver y consultar trazabilidad.</p>
 
             <div id="request-form-feedback" class="alert d-none" role="alert"></div>
 
-            <form method="POST" action="{{ route('requests.store') }}" class="row g-3" id="request-create-form" novalidate>
+            <form method="POST" action="{{ isset($submission) ? route('requests.update', $submission) : route('requests.store') }}" class="row g-3" id="request-create-form" novalidate data-method="{{ isset($submission) ? 'PUT' : 'POST' }}">
+                @if(isset($submission))
+                    @method('PUT')
+                @endif
                 @csrf
 
                 <div class="col-12">
@@ -29,7 +32,7 @@
                     >
                         <option value="">Selecciona funcionario</option>
                         @foreach ($employees as $employee)
-                            <option value="{{ $employee->id }}" @selected(old('subject_employee_id') == $employee->id)>
+                            <option value="{{ $employee->id }}" @selected(old('subject_employee_id', data_get($payload, 'subject_employee.id')) == $employee->id)>
                                 {{ $employee->full_name }} · {{ $employee->rut }}-{{ $employee->dv }}
                                 @if($employee->unidad)
                                     · {{ $employee->unidad }}
@@ -58,8 +61,8 @@
                         class="form-select @error('replacement_is_external') is-invalid @enderror"
                         required
                     >
-                        <option value="0" @selected(old('replacement_is_external', '0') === '0')>Interno</option>
-                        <option value="1" @selected(old('replacement_is_external') === '1')>Externo</option>
+                        <option value="0" @selected(old('replacement_is_external', data_get($payload, 'replacement.is_external') ? '1' : '0') === '0')>Interno</option>
+                        <option value="1" @selected(old('replacement_is_external', data_get($payload, 'replacement.is_external') ? '1' : '0') === '1')>Externo</option>
                     </select>
                     <div class="invalid-feedback" data-error-for="replacement_is_external">
                         @error('replacement_is_external'){{ $message }}@enderror
@@ -76,7 +79,7 @@
                         >
                             <option value="">Selecciona reemplazante interno</option>
                             @foreach ($employees as $employee)
-                                <option value="{{ $employee->id }}" @selected(old('replacement_employee_id') == $employee->id)>
+                                <option value="{{ $employee->id }}" @selected(old('replacement_employee_id', data_get($payload, 'replacement.employee_id')) == $employee->id)>
                                     {{ $employee->full_name }} · {{ $employee->rut }}-{{ $employee->dv }}
                                     @if($employee->unidad)
                                         · {{ $employee->unidad }}
@@ -100,7 +103,7 @@
                             type="text"
                             id="replacement_full_name"
                             name="replacement_full_name"
-                            value="{{ old('replacement_full_name') }}"
+                            value="{{ old('replacement_full_name', data_get($payload, 'replacement.full_name')) }}"
                             class="form-control @error('replacement_full_name') is-invalid @enderror"
                             placeholder="Nombre completo"
                         >
@@ -115,7 +118,7 @@
                             type="text"
                             id="replacement_rut"
                             name="replacement_rut"
-                            value="{{ old('replacement_rut') }}"
+                            value="{{ old('replacement_rut', data_get($payload, 'replacement.rut')) }}"
                             class="form-control @error('replacement_rut') is-invalid @enderror"
                             placeholder="12345678"
                         >
@@ -130,7 +133,7 @@
                             type="text"
                             id="replacement_dv"
                             name="replacement_dv"
-                            value="{{ old('replacement_dv') }}"
+                            value="{{ old('replacement_dv', data_get($payload, 'replacement.dv')) }}"
                             class="form-control @error('replacement_dv') is-invalid @enderror"
                             maxlength="1"
                             placeholder="K"
@@ -146,7 +149,7 @@
                             type="text"
                             id="replacement_profession"
                             name="replacement_profession"
-                            value="{{ old('replacement_profession') }}"
+                            value="{{ old('replacement_profession', data_get($payload, 'replacement.profession')) }}"
                             class="form-control @error('replacement_profession') is-invalid @enderror"
                         >
                         <div class="invalid-feedback" data-error-for="replacement_profession">
@@ -160,7 +163,7 @@
                             type="text"
                             id="replacement_specialty"
                             name="replacement_specialty"
-                            value="{{ old('replacement_specialty') }}"
+                            value="{{ old('replacement_specialty', data_get($payload, 'replacement.specialty')) }}"
                             class="form-control @error('replacement_specialty') is-invalid @enderror"
                         >
                         <div class="invalid-feedback" data-error-for="replacement_specialty">
@@ -175,7 +178,7 @@
                             name="replacement_notes"
                             class="form-control @error('replacement_notes') is-invalid @enderror"
                             rows="2"
-                        >{{ old('replacement_notes') }}</textarea>
+                        >{{ old('replacement_notes', data_get($payload, 'replacement.notes')) }}</textarea>
                         <div class="invalid-feedback" data-error-for="replacement_notes">
                             @error('replacement_notes'){{ $message }}@enderror
                         </div>
@@ -196,7 +199,7 @@
                     >
                         <option value="">Selecciona tipo (opcional)</option>
                         @foreach ($absenceTypes as $absenceType)
-                            <option value="{{ $absenceType->id }}" @selected(old('absence_type_id') == $absenceType->id)>
+                            <option value="{{ $absenceType->id }}" @selected(old('absence_type_id', data_get($payload, 'absence.type_id')) == $absenceType->id)>
                                 {{ $absenceType->name }}
                             </option>
                         @endforeach
@@ -214,7 +217,7 @@
                         class="form-control @error('absence_detail') is-invalid @enderror"
                         rows="2"
                         placeholder="Detalle adicional (opcional)"
-                    >{{ old('absence_detail') }}</textarea>
+                    >{{ old('absence_detail', data_get($payload, 'absence.detail')) }}</textarea>
                     <div class="invalid-feedback" data-error-for="absence_detail">
                         @error('absence_detail'){{ $message }}@enderror
                     </div>
@@ -231,7 +234,7 @@
                         type="date"
                         id="start_date"
                         name="start_date"
-                        value="{{ old('start_date') }}"
+                        value="{{ old('start_date', data_get($payload, 'period.start_date')) }}"
                         class="form-control @error('start_date') is-invalid @enderror"
                         required
                     >
@@ -246,7 +249,7 @@
                         type="date"
                         id="end_date"
                         name="end_date"
-                        value="{{ old('end_date') }}"
+                        value="{{ old('end_date', data_get($payload, 'period.end_date')) }}"
                         class="form-control @error('end_date') is-invalid @enderror"
                         required
                     >
@@ -261,7 +264,7 @@
                         type="text"
                         id="motivo"
                         name="motivo"
-                        value="{{ old('motivo') }}"
+                        value="{{ old('motivo', data_get($payload, 'motivo')) }}"
                         class="form-control @error('motivo') is-invalid @enderror"
                         placeholder="Ej: Licencia médica"
                         required
@@ -273,7 +276,7 @@
 
                 <div class="col-12 d-flex gap-2 justify-content-end mt-3">
                     <a href="{{ route('requests.index') }}" class="btn btn-outline-secondary">Cancelar</a>
-                    <button type="submit" class="btn btn-primary" id="request-create-submit">Enviar y generar PDF</button>
+                    <button type="submit" class="btn btn-primary" id="request-create-submit">{{ isset($submission) ? 'Actualizar borrador' : 'Guardar borrador' }}</button>
                 </div>
             </form>
         </div>
@@ -352,6 +355,7 @@
 
                 const formData = new FormData(form);
                 const payload = Object.fromEntries(formData.entries());
+                payload._method = form.dataset.method ?? 'POST';
 
                 try {
                     const response = await fetch(form.action, {
@@ -367,7 +371,7 @@
                     const result = await response.json();
 
                     if (response.ok && result.ok) {
-                        showFeedback(result.message ?? 'Formulario enviado correctamente.', 'success');
+                        showFeedback(result.message ?? 'Borrador guardado correctamente.', 'success');
                         window.setTimeout(() => {
                             if (result?.data?.show_url) {
                                 window.location.href = result.data.show_url;
