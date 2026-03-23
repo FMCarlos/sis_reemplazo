@@ -25,6 +25,14 @@
             Solicitudes
         </a>
 
+        <a class="nav-link {{ Route::is('forms.index') ? 'active' : '' }}" href="{{ route('forms.index') }}">
+            Catálogo de formularios
+        </a>
+
+        <a class="nav-link {{ Route::is('forms.submissions.*') ? 'active' : '' }}" href="{{ route('forms.submissions.index') }}">
+            Envíos de formularios
+        </a>
+
         @if ($role === UserRole::JEFE_SERVICIO)
             <a class="nav-link {{ Route::is('requests.create') ? 'active' : '' }}" href="{{ route('requests.create') }}">
                 Nueva solicitud
