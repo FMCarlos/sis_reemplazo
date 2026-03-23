@@ -15,7 +15,7 @@ class RequestWorkflowActionsTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_full_workflow_updates_status_and_creates_audit_rows(): void
+    public function test_legacy_gestion_personas_transition_routes_are_not_available(): void
     {
         $service = Service::query()->create(['name' => 'Urgencias']);
 
@@ -24,32 +24,16 @@ class RequestWorkflowActionsTest extends TestCase
             'service_id' => $service->id,
         ]);
 
-        $gestion = User::factory()->create([
-            'role' => UserRole::GESTION_PERSONAS,
-        ]);
-
-        $rrhh = User::factory()->create([
-            'role' => UserRole::RRHH,
-        ]);
-
         $request = Request::query()->create([
             'service_id' => $service->id,
             'created_by' => $jefe->id,
-            'status' => RequestStatus::BORRADOR,
+            'status' => RequestStatus::ENVIADA,
         ]);
 
-        $this->actingAs($jefe)->postJson(route('requests.actions.send', $request))->assertOk();
-        $this->actingAs($gestion)->postJson(route('requests.actions.take', $request))->assertOk();
-        $this->actingAs($gestion)->postJson(route('requests.actions.send_to_rrhh', $request))->assertOk();
-        $this->actingAs($rrhh)->postJson(route('requests.actions.approve_rrhh', $request))->assertOk();
-        $this->actingAs($gestion)->postJson(route('requests.actions.mark_contract_done', $request))->assertOk();
-
-        $this->assertDatabaseHas('requests', [
-            'id' => $request->id,
-            'status' => RequestStatus::FINALIZADA->value,
-        ]);
-
-        $this->assertSame(5, RequestAction::query()->count());
+        $this->assertFalse(app('router')->has('requests.actions.take'));
+        $this->assertFalse(app('router')->has('requests.actions.send_to_rrhh'));
+        $this->assertFalse(app('router')->has('requests.actions.mark_contract_done'));
+        $this->assertFalse($jefe->can('take', $request));
     }
 
     public function test_observe_and_reject_require_comment(): void
@@ -83,5 +67,7 @@ class RequestWorkflowActionsTest extends TestCase
             'to_status' => RequestStatus::RECHAZADA->value,
             'comment' => 'Falta documentación',
         ]);
+
+        $this->assertSame(1, RequestAction::query()->count());
     }
 }

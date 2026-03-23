@@ -116,6 +116,32 @@ class FormSubmissionWorkflowTest extends TestCase
         ]);
     }
 
+
+    public function test_gestion_personas_cannot_apply_rrhh_actions_to_modular_replacement_submission(): void
+    {
+        Storage::fake('local');
+
+        [, $submission] = $this->createDraftSubmission();
+        $submission->update([
+            'status' => FormSubmissionStatus::SUBMITTED,
+            'submitted_at' => now(),
+        ]);
+
+        $gestion = User::factory()->create(['role' => UserRole::GESTION_PERSONAS]);
+
+        $this->actingAs($gestion)
+            ->postJson(route('forms.submissions.approve', $submission), [
+                'comment' => 'No corresponde.',
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($gestion)
+            ->postJson(route('forms.submissions.reject', $submission), [
+                'comment' => 'No corresponde.',
+            ])
+            ->assertForbidden();
+    }
+
     private function createDraftSubmission(): array
     {
         $service = Service::query()->create(['name' => 'Cirugía']);

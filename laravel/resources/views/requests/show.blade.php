@@ -50,10 +50,7 @@
 
     $actionLabelMap = [
         'send' => 'Enviada',
-        'take' => 'Tomada',
-        'send_to_rrhh' => 'Enviada a RRHH',
         'approve_rrhh' => 'Aprobada por RRHH',
-        'mark_contract_done' => 'Contrato en tramitación',
         'observe' => 'Observada',
         'reject' => 'Rechazada',
         'create_draft' => 'Borrador creado',
@@ -158,17 +155,8 @@
                 @can('send', $requestModel)
                         <button type="button" class="btn btn-primary" data-workflow-action="send">Enviar</button>
                 @endcan
-                @can('take', $requestModel)
-                        <button type="button" class="btn btn-outline-primary" data-workflow-action="take">Tomar en gestión</button>
-                @endcan
-                @can('sendToRrhh', $requestModel)
-                        <button type="button" class="btn btn-outline-info" data-workflow-action="send_to_rrhh">Enviar a RRHH</button>
-                @endcan
                 @can('approveRrhh', $requestModel)
                         <button type="button" class="btn btn-success" data-workflow-action="approve_rrhh">Aprobar RRHH</button>
-                @endcan
-                @can('markContractDone', $requestModel)
-                        <button type="button" class="btn btn-dark" data-workflow-action="mark_contract_done">Marcar contrato finalizado</button>
                 @endcan
                 @can('observe', $requestModel)
                         <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#commentActionModal" data-workflow-comment-action="observe">Observar</button>
@@ -298,22 +286,16 @@
 @php
     $initialCan = [
         'send' => auth()->user()->can('send', $requestModel),
-        'take' => auth()->user()->can('take', $requestModel),
-        'send_to_rrhh' => auth()->user()->can('sendToRrhh', $requestModel),
         'approve_rrhh' => auth()->user()->can('approveRrhh', $requestModel),
-        'mark_contract_done' => auth()->user()->can('markContractDone', $requestModel),
         'observe' => auth()->user()->can('observe', $requestModel),
         'reject' => auth()->user()->can('reject', $requestModel),
     ];
 
     $workflowActionUrls = [
         'send' => route('requests.actions.send', $requestModel),
-        'take' => route('requests.actions.take', $requestModel),
-        'send_to_rrhh' => route('requests.actions.send_to_rrhh', $requestModel),
         'observe' => route('requests.actions.observe', $requestModel),
         'reject' => route('requests.actions.reject', $requestModel),
         'approve_rrhh' => route('requests.actions.approve_rrhh', $requestModel),
-        'mark_contract_done' => route('requests.actions.mark_contract_done', $requestModel),
     ];
 @endphp
 

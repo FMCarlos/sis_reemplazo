@@ -61,20 +61,16 @@ class RequestPolicy
 
     public function take(User $user, Request $request): bool
     {
-        return $this->canPerform($user, $request, UserRole::GESTION_PERSONAS, [RequestStatus::ENVIADA]);
+        return false;
     }
 
     public function sendToRrhh(User $user, Request $request): bool
     {
-        return $this->canPerform($user, $request, UserRole::GESTION_PERSONAS, [RequestStatus::EN_GESTION_PERSONAS]);
+        return false;
     }
 
     public function observe(User $user, Request $request): bool
     {
-        if ($this->canPerform($user, $request, UserRole::GESTION_PERSONAS, [RequestStatus::EN_GESTION_PERSONAS])) {
-            return true;
-        }
-
         return $this->canPerform($user, $request, UserRole::RRHH, [RequestStatus::EN_RRHH]);
     }
 
@@ -90,7 +86,7 @@ class RequestPolicy
 
     public function markContractDone(User $user, Request $request): bool
     {
-        return $this->canPerform($user, $request, UserRole::GESTION_PERSONAS, [RequestStatus::EN_TRAMITACION_CONTRATO]);
+        return false;
     }
 
     private function canPerform(User $user, Request $request, UserRole $role, array $statuses): bool
