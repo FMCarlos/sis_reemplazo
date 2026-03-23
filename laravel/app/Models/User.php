@@ -57,6 +57,16 @@ class User extends Authenticatable
         return $this->hasMany(Request::class, 'created_by');
     }
 
+    public function formSubmissions(): HasMany
+    {
+        return $this->hasMany(FormSubmission::class, 'submitted_by');
+    }
+
+    public function formSubmissionActions(): HasMany
+    {
+        return $this->hasMany(FormSubmissionAction::class);
+    }
+
     public function service(): BelongsTo
     {
         return $this->belongsTo(Service::class);

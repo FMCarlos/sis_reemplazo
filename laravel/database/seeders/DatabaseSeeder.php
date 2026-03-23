@@ -12,7 +12,7 @@ class DatabaseSeeder extends Seeder
     /**
      * Seed the application's database.
      */
-   public function run(): void
+    public function run(): void
     {
         $this->call([
             AbsenceTypeSeeder::class,
@@ -23,7 +23,8 @@ class DatabaseSeeder extends Seeder
             ProfessionSeeder::class,
             SpecialtySeeder::class,
             RoleUsersSeeder::class,
-            RequestSeeder::class, 
+            FormTypeSeeder::class,
+            RequestSeeder::class,
         ]);
     }
 }
