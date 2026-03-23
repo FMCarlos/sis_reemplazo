@@ -1,13 +1,14 @@
 @extends('layouts.admin')
 
-@section('title', 'Nueva Solicitud')
-@section('page-title', 'Nueva Solicitud')
+@section('title', 'Nuevo formulario de reemplazo')
+@section('page-title', 'Nuevo formulario de reemplazo')
 @section('breadcrumb', 'Inicio / Solicitudes / Nueva')
 
 @section('content')
     <section class="card border-0 shadow-sm">
         <div class="card-body">
-            <h1 class="h4 mb-4">Crear solicitud de reemplazo</h1>
+            <h1 class="h4 mb-2">Crear formulario de reemplazo</h1>
+            <p class="text-muted">Flujo simple: crear, guardar, generar PDF y consultar el envío.</p>
 
             <div id="request-form-feedback" class="alert d-none" role="alert"></div>
 
@@ -272,7 +273,7 @@
 
                 <div class="col-12 d-flex gap-2 justify-content-end mt-3">
                     <a href="{{ route('requests.index') }}" class="btn btn-outline-secondary">Cancelar</a>
-                    <button type="submit" class="btn btn-primary" id="request-create-submit">Guardar borrador</button>
+                    <button type="submit" class="btn btn-primary" id="request-create-submit">Enviar y generar PDF</button>
                 </div>
             </form>
         </div>
@@ -366,9 +367,16 @@
                     const result = await response.json();
 
                     if (response.ok && result.ok) {
-                        showFeedback(result.message ?? 'Solicitud creada en borrador.', 'success');
-                        form.reset();
-                        syncReplacementMode();
+                        showFeedback(result.message ?? 'Formulario enviado correctamente.', 'success');
+                        window.setTimeout(() => {
+                            if (result?.data?.show_url) {
+                                window.location.href = result.data.show_url;
+                                return;
+                            }
+
+                            form.reset();
+                            syncReplacementMode();
+                        }, 600);
                         return;
                     }
 
