@@ -142,6 +142,63 @@ class FormSubmissionWorkflowTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_rrhh_sees_approve_and_reject_actions_in_detail_for_submitted_submission(): void
+    {
+        [, $submission] = $this->createDraftSubmission();
+        $submission->update([
+            'status' => FormSubmissionStatus::SUBMITTED,
+            'submitted_at' => now(),
+        ]);
+
+        $rrhh = User::factory()->create(['role' => UserRole::RRHH]);
+
+        $this->actingAs($rrhh)
+            ->get(route('forms.submissions.show', $submission))
+            ->assertOk()
+            ->assertSee('Aprobar RRHH')
+            ->assertSee('Rechazar RRHH')
+            ->assertDontSee('Observar');
+    }
+
+    public function test_rrhh_sees_approve_and_reject_actions_in_index_for_submitted_submission(): void
+    {
+        [, $submission] = $this->createDraftSubmission();
+        $submission->update([
+            'status' => FormSubmissionStatus::SUBMITTED,
+            'submitted_at' => now(),
+        ]);
+
+        $rrhh = User::factory()->create(['role' => UserRole::RRHH]);
+
+        $this->actingAs($rrhh)
+            ->get(route('forms.submissions.index'))
+            ->assertOk()
+            ->assertSee('Aprobar RRHH')
+            ->assertSee('Rechazar RRHH');
+    }
+
+    public function test_rrhh_can_approve_from_index_using_standard_post_flow(): void
+    {
+        Storage::fake('local');
+
+        [, $submission] = $this->createDraftSubmission();
+        $submission->update([
+            'status' => FormSubmissionStatus::SUBMITTED,
+            'submitted_at' => now(),
+        ]);
+
+        $rrhh = User::factory()->create(['role' => UserRole::RRHH]);
+
+        $this->actingAs($rrhh)
+            ->from(route('forms.submissions.index'))
+            ->post(route('forms.submissions.approve', $submission))
+            ->assertRedirect(route('forms.submissions.show', $submission));
+
+        $submission->refresh();
+
+        $this->assertSame(FormSubmissionStatus::APPROVED, $submission->status);
+    }
+
     private function createDraftSubmission(): array
     {
         $service = Service::query()->create(['name' => 'Cirugía']);

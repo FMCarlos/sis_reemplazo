@@ -41,7 +41,23 @@
                             <td>{{ $submission->submitter?->name ?? 'Usuario no disponible' }}</td>
                             <td>{{ $submission->submitted_at?->format('Y-m-d H:i') ?? 'Pendiente' }}</td>
                             <td class="text-end">
-                                <a href="{{ route('forms.submissions.show', $submission) }}" class="btn btn-sm btn-outline-primary">Ver detalle</a>
+                                <div class="d-inline-flex gap-2 flex-wrap justify-content-end">
+                                    <a href="{{ route('forms.submissions.show', $submission) }}" class="btn btn-sm btn-outline-primary">Ver detalle</a>
+
+                                    @can('approve', $submission)
+                                        <form method="POST" action="{{ route('forms.submissions.approve', $submission) }}" class="d-inline">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-success">Aprobar RRHH</button>
+                                        </form>
+                                    @endcan
+
+                                    @can('reject', $submission)
+                                        <form method="POST" action="{{ route('forms.submissions.reject', $submission) }}" class="d-inline">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Rechazar RRHH</button>
+                                        </form>
+                                    @endcan
+                                </div>
                             </td>
                         </tr>
                     @empty
